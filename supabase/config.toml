@@ -1,0 +1,17 @@
+[functions.compute-growth-profile-scores]
+verify_jwt = true
+
+[functions.create-demo-users]
+verify_jwt = true
+
+[functions.create-org-employee]
+verify_jwt = true
+
+[functions.generate-assessment-question]
+verify_jwt = true
+
+[functions.generate-skill-question]
+verify_jwt = true
+
+[functions.provision-org-admin]
+verify_jwt = true

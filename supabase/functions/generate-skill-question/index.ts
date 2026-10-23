@@ -214,3 +214,4 @@ Respond ONLY with valid JSON in this exact format (no markdown, no code blocks):
     });
   }
 });
+// verify_jwt=true
