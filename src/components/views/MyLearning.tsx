@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase, QUIZ_PASS_MARK } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import CoursePlayerPage from './mylearning/CoursePlayerPage';
+import CoursePlayerPage, { isCourseComplete } from './mylearning/CoursePlayerPage';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1149,25 +1149,58 @@ export default function MyLearning() {
       setModuleProgressMap(updatedMM);
 
       const mods = courseModulesMap[courseId] || [];
-      const mandatoryMods = mods.filter(m => m.is_mandatory);
-      const allMandatoryDone = mandatoryMods.length > 0 && mandatoryMods.every(m => updatedMM[courseId]?.has(m.id));
+      // Complete when every mandatory module is done, or every module if none is marked mandatory.
+      const allRequiredDone = isCourseComplete(mods, updatedMM[courseId] || new Set());
+      const totalDone = updatedMM[courseId]?.size || 0;
+      const pct = allRequiredDone ? 100 : (mods.length > 0 ? Math.round((totalDone / mods.length) * 100) : 0);
+      const now = new Date().toISOString();
 
-      if (allMandatoryDone) {
-        const existingProg = progressMap[courseId];
-        if (existingProg) {
-          await supabase.from('learning_progress')
-            .update({ status: 'completed', progress_percentage: 100, completed_at: new Date().toISOString() })
-            .eq('id', existingProg.id);
+      // The course-level progress row may not exist if the learner opened the
+      // player without pressing Start first. Create it so progress is recorded.
+      let courseProg = progressMap[courseId];
+      if (!courseProg) {
+        const { data: created } = await supabase.from('learning_progress').insert({
+          assignment_id: assignmentId,
+          employee_id: employeeId,
+          course_id: courseId,
+          module_id: null,
+          started_at: now,
+          progress_percentage: pct,
+          status: allRequiredDone ? 'completed' : 'in_progress',
+          completed_at: allRequiredDone ? now : null,
+          attempts: 1,
+        }).select().single();
+        if (created) {
+          courseProg = created;
+          setProgressMap(prev => ({ ...prev, [courseId]: created }));
+        }
+      } else {
+        setProgressMap(prev => ({
+          ...prev,
+          [courseId]: { ...prev[courseId], status: allRequiredDone ? 'completed' : 'in_progress', progress_percentage: pct },
+        }));
+        await supabase.from('learning_progress')
+          .update(allRequiredDone
+            ? { status: 'completed', progress_percentage: 100, completed_at: now }
+            : { status: 'in_progress', progress_percentage: pct })
+          .eq('id', courseProg.id);
+      }
+
+      if (allRequiredDone) {
+        const asgn = assignments.find(a => a.id === assignmentId);
+        if (asgn?.learning_path_id) {
+          // A path assignment completes only when every course in the path is done.
+          const items = pathItemsMap[asgn.learning_path_id] || [];
+          const otherDone = items
+            .filter(it => it.course_id !== courseId)
+            .every(it => progressMap[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id));
+          if (otherDone) {
+            await supabase.from('employee_learning_assignments').update({ status: 'completed' }).eq('id', assignmentId);
+          }
+        } else {
           await supabase.from('employee_learning_assignments').update({ status: 'completed' }).eq('id', assignmentId);
         }
         await load();
-      } else {
-        const totalDone = updatedMM[courseId]?.size || 0;
-        const pct = mods.length > 0 ? Math.round((totalDone / mods.length) * 100) : 0;
-        const existingProg = progressMap[courseId];
-        if (existingProg) {
-          await supabase.from('learning_progress').update({ progress_percentage: pct }).eq('id', existingProg.id);
-        }
       }
     } catch (e: any) {
       setError('Failed to mark module complete: ' + e.message);
@@ -1411,6 +1444,7 @@ export default function MyLearning() {
         modules={activeCoursePlayer.modules}
         completedModuleIds={activeCoursePlayer.completedModuleIds}
         readOnly={activeCoursePlayer.readOnly}
+        returnLabel={assignments.find(a => a.id === activeCoursePlayer.assignmentId)?.learning_path_id ? 'Back to learning path' : 'Back to My Learning'}
         onBack={() => { setActiveCoursePlayer(null); load(); }}
         onModuleComplete={handleModuleComplete}
       />

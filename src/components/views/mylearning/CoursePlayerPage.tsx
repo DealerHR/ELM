@@ -3,7 +3,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, CheckCircle2,
   FileText, Link2, ExternalLink, RefreshCw, AlertCircle, BookOpen,
   List, X, Play, Clock, Lock, Video, Presentation,
-  ClipboardList, AlignLeft, CheckCircle, Award,
+  ClipboardList, AlignLeft, CheckCircle, Award, PartyPopper, ArrowRight,
 } from 'lucide-react';
 import { supabase, QUIZ_PASS_MARK } from '../../../lib/supabase';
 
@@ -39,8 +39,23 @@ interface CoursePlayerPageProps {
   modules: CourseModule[];
   completedModuleIds: Set<string>;
   readOnly?: boolean;
+  /** Label for the button on the course-complete screen, e.g. "Back to learning path". */
+  returnLabel?: string;
   onBack: () => void;
   onModuleComplete: (moduleId: string, courseId: string, assignmentId: string) => Promise<void>;
+}
+
+const OFFICE_EXTENSIONS = ['.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx'];
+
+/** Which modules must be done for the course to count as complete. */
+export function requiredModules(modules: CourseModule[]): CourseModule[] {
+  const mandatory = modules.filter(m => m.is_mandatory);
+  return mandatory.length > 0 ? mandatory : modules;
+}
+
+export function isCourseComplete(modules: CourseModule[], done: Set<string>): boolean {
+  const req = requiredModules(modules);
+  return req.length > 0 && req.every(m => done.has(m.id));
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
@@ -98,6 +113,7 @@ export default function CoursePlayerPage({
   modules,
   completedModuleIds: initialCompleted,
   readOnly,
+  returnLabel = 'Back to My Learning',
   onBack,
   onModuleComplete,
 }: CoursePlayerPageProps) {
@@ -113,6 +129,10 @@ export default function CoursePlayerPage({
   const [saving, setSaving] = useState(false);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
   const [openingPdf, setOpeningPdf] = useState(false);
+  // Module the learner tried to move to while the current one is not yet done.
+  const [pendingNav, setPendingNav] = useState<number | null>(null);
+  const [showCompleteScreen, setShowCompleteScreen] = useState(false);
+  const [justMarked, setJustMarked] = useState(false);
 
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
@@ -126,12 +146,17 @@ export default function CoursePlayerPage({
   const mod = modules[currentIdx];
   const isVideo = mod?.content_type === 'video';
   const isPdf = mod?.content_file_name?.toLowerCase().endsWith('.pdf');
+  const fileExt = (mod?.content_file_name?.toLowerCase().match(/\.[a-z0-9]+$/) || [''])[0];
+  const isOffice = OFFICE_EXTENSIONS.includes(fileExt);
   const hasFile = Boolean(mod?.content_file_path);
   const hasLink = Boolean(mod?.content_url);
   const isQuiz = mod?.content_type === 'quiz';
   const isDone = mod ? completedIds.has(mod.id) : false;
   const completedCount = modules.filter(m => completedIds.has(m.id)).length;
   const progressPct = modules.length > 0 ? Math.round((completedCount / modules.length) * 100) : 0;
+  const courseDone = isCourseComplete(modules, completedIds);
+  const nextIdx = currentIdx < modules.length - 1 ? currentIdx + 1 : -1;
+  const nextUndoneIdx = modules.findIndex((m, i) => i !== currentIdx && !completedIds.has(m.id));
   const youtubeEmbedUrl = hasLink && mod?.content_url ? getYouTubeEmbedUrl(mod.content_url) : null;
 
   useEffect(() => {
@@ -140,6 +165,8 @@ export default function CoursePlayerPage({
     setQuizQuestions([]);
     setQuizAnswers({});
     setQuizResult(null);
+    setJustMarked(false);
+    setPendingNav(null);
 
     if (mod?.content_file_path) {
       setLoadingFile(true);
@@ -198,6 +225,17 @@ export default function CoursePlayerPage({
     setCurriculumOpen(false);
   };
 
+  // Moving away from a module that is not yet done asks the learner first.
+  const requestGoTo = (idx: number) => {
+    if (idx < 0 || idx >= modules.length || idx === currentIdx) return;
+    if (!readOnly && !isDone && !isQuiz && mod) {
+      setPendingNav(idx);
+      setCurriculumOpen(false);
+      return;
+    }
+    goTo(idx);
+  };
+
   const handleOpenPdf = async () => {
     if (!mod?.content_file_path) return;
     setOpeningPdf(true);
@@ -211,17 +249,46 @@ export default function CoursePlayerPage({
     }
   };
 
+  // Marks the current module done. Returns the new completed set.
+  const markCurrentDone = async (): Promise<Set<string>> => {
+    if (!mod || readOnly) return completedIds;
+    const updated = new Set([...completedIds, mod.id]);
+    await onModuleComplete(mod.id, courseId, assignmentId);
+    setCompletedIds(updated);
+    return updated;
+  };
+
   const handleMarkDone = async () => {
-    if (!mod || saving || readOnly) return;
+    if (!mod || saving || readOnly || isDone) return;
     setSaving(true);
     try {
-      await onModuleComplete(mod.id, courseId, assignmentId);
-      setCompletedIds(prev => new Set([...prev, mod.id]));
-      const next = modules.findIndex((m, i) => i > currentIdx && !completedIds.has(m.id));
-      if (next >= 0) setTimeout(() => goTo(next), 300);
+      const updated = await markCurrentDone();
+      setJustMarked(true);
+      if (isCourseComplete(modules, updated)) setShowCompleteScreen(true);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleMarkDoneAndContinue = async () => {
+    if (pendingNav === null) return;
+    const target = pendingNav;
+    setSaving(true);
+    try {
+      const updated = await markCurrentDone();
+      setPendingNav(null);
+      if (isCourseComplete(modules, updated)) setShowCompleteScreen(true);
+      else goTo(target);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSkipAndContinue = () => {
+    if (pendingNav === null) return;
+    const target = pendingNav;
+    setPendingNav(null);
+    goTo(target);
   };
 
   const handleQuizSubmit = async () => {
@@ -263,7 +330,9 @@ export default function CoursePlayerPage({
       setQuizResult({ score, max, percentage });
 
       await onModuleComplete(mod.id, courseId, assignmentId);
-      setCompletedIds(prev => new Set([...prev, mod.id]));
+      const updated = new Set([...completedIds, mod.id]);
+      setCompletedIds(updated);
+      if (isCourseComplete(modules, updated)) setTimeout(() => setShowCompleteScreen(true), 1500);
     } finally {
       setQuizSubmitting(false);
     }
@@ -287,7 +356,7 @@ export default function CoursePlayerPage({
           return (
             <button
               key={m.id}
-              onClick={() => goTo(idx)}
+              onClick={() => requestGoTo(idx)}
               className={`w-full text-left px-4 py-3 flex items-start gap-3 transition border-l-2 ${
                 active ? 'bg-yellow-400/10 border-yellow-400' : 'border-transparent hover:bg-gray-700/40'
               }`}
@@ -457,6 +526,7 @@ export default function CoursePlayerPage({
               src={fileUrl}
               controls
               autoPlay={false}
+              onEnded={() => { if (!isDone && !readOnly) handleMarkDone(); }}
               className="w-full h-full object-contain"
               style={{ maxHeight: '100%' }}
             />
@@ -492,6 +562,33 @@ export default function CoursePlayerPage({
               title={mod.title}
               className="w-full h-full border-0"
             />
+          </div>
+        );
+      }
+      if (isOffice) {
+        // Microsoft's online viewer renders Word, PowerPoint and Excel files from a public link.
+        // The signed URL is valid for an hour, which is plenty for a viewing session.
+        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+        return (
+          <div className="flex-1 min-h-0 bg-gray-900 flex flex-col overflow-hidden">
+            <iframe
+              key={viewerUrl}
+              src={viewerUrl}
+              title={mod.title}
+              className="w-full flex-1 border-0 bg-white"
+              allowFullScreen
+            />
+            <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-gray-900 border-t border-gray-800">
+              <span className="text-[11px] text-gray-500 truncate">{mod.content_file_name}</span>
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-white transition flex-shrink-0"
+              >
+                <ExternalLink className="w-3 h-3" /> Open in new tab
+              </a>
+            </div>
           </div>
         );
       }
@@ -650,27 +747,58 @@ export default function CoursePlayerPage({
                     </button>
                   ) : readOnly ? (
                     <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1.5 rounded-lg">Review</span>
-                  ) : null}
+                  ) : !isQuiz ? null : (
+                    <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1.5 rounded-lg">Submit the quiz to complete</span>
+                  )}
                 </div>
 
                 {/* Navigation */}
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => goTo(currentIdx - 1)}
+                    onClick={() => requestGoTo(currentIdx - 1)}
                     disabled={currentIdx === 0}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:border-gray-500 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Prev</span>
                   </button>
-                  <button
-                    onClick={() => goTo(currentIdx + 1)}
-                    disabled={currentIdx === modules.length - 1}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:border-gray-500 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  {nextIdx >= 0 ? (
+                    <button
+                      onClick={() => requestGoTo(nextIdx)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        isDone
+                          ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300 ' + (justMarked ? 'ring-2 ring-yellow-300/60 animate-pulse' : '')
+                          : 'border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">{isDone ? 'Next module' : 'Next'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : courseDone && !readOnly ? (
+                    <button
+                      onClick={() => setShowCompleteScreen(true)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition"
+                    >
+                      Finish course <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : nextUndoneIdx >= 0 && !readOnly ? (
+                    <button
+                      onClick={() => requestGoTo(nextUndoneIdx)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-yellow-400/60 text-xs font-semibold text-yellow-300 hover:bg-yellow-400/10 transition"
+                    >
+                      <span className="hidden sm:inline">Go to unfinished</span>
+                      <span className="sm:hidden">Unfinished</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 opacity-30 cursor-not-allowed"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -682,6 +810,77 @@ export default function CoursePlayerPage({
           <CurriculumList />
         </div>
       </div>
+
+      {/* Prompt: moving on from a module that is not done */}
+      {pendingNav !== null && mod && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70">
+          <div className="w-full max-w-sm bg-gray-900 border border-gray-700 rounded-2xl p-5 shadow-2xl">
+            <div className="w-10 h-10 rounded-xl bg-yellow-400/15 border border-yellow-400/30 flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-5 h-5 text-yellow-300" />
+            </div>
+            <h3 className="text-base font-bold text-white">Mark this module as done?</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              You have not marked <span className="text-gray-200 font-medium">{mod.title}</span> as done.
+              {mod.is_mandatory ? ' It is required to complete the course.' : ''}
+            </p>
+            <div className="flex flex-col gap-2 mt-4">
+              <button
+                onClick={handleMarkDoneAndContinue}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition disabled:opacity-50"
+              >
+                {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Mark done and continue
+              </button>
+              <button
+                onClick={handleSkipAndContinue}
+                disabled={saving}
+                className="w-full py-2.5 border border-gray-700 text-gray-300 text-sm font-semibold rounded-xl hover:border-gray-500 hover:text-white transition disabled:opacity-50"
+              >
+                Skip for now
+              </button>
+              <button
+                onClick={() => setPendingNav(null)}
+                disabled={saving}
+                className="w-full py-2 text-gray-500 text-xs hover:text-gray-300 transition"
+              >
+                Stay on this module
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course complete */}
+      {showCompleteScreen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-gray-950/95">
+          <div className="w-full max-w-md text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-5">
+              <PartyPopper className="w-10 h-10 text-emerald-400" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2">Course complete</p>
+            <h2 className="text-2xl font-bold text-white">{courseTitle}</h2>
+            <p className="text-sm text-gray-400 mt-2">
+              You have finished all {requiredModules(modules).length === modules.length ? '' : 'required '}modules.
+              Your progress has been saved.
+            </p>
+            <div className="mt-6 flex flex-col gap-2">
+              <button
+                onClick={onBack}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition"
+              >
+                {returnLabel} <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowCompleteScreen(false)}
+                className="w-full py-2.5 text-gray-400 text-sm hover:text-white transition"
+              >
+                Review the modules
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Curriculum Drawer */}
       {curriculumOpen && (
