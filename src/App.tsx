@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/auth/LoginForm';
+import ChangePasswordForm from './components/auth/ChangePasswordForm';
+import { supabase } from './lib/supabase';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/views/Dashboard';
@@ -40,6 +42,15 @@ function AppContent() {
   });
   const [learnerMode, setLearnerMode] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Set when the user arrives through a "forgot password" email link.
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const checkRoute = () => {
@@ -56,6 +67,21 @@ function AppContent() {
 
   if (!user || !userProfile) {
     return <LoginForm />;
+  }
+
+  if (passwordRecovery) {
+    return (
+      <ChangePasswordForm
+        fullScreen
+        title="Reset your password"
+        description="Choose a new password for your account."
+        onDone={() => setPasswordRecovery(false)}
+      />
+    );
+  }
+
+  if (userProfile.must_change_password) {
+    return <ChangePasswordForm fullScreen />;
   }
 
   const renderView = () => {

@@ -119,6 +119,7 @@ Deno.serve(async (req: Request) => {
       phone: phone || null,
       role: requestedRole,
       is_active: true,
+      must_change_password: true,
     });
 
     if (profileError) {

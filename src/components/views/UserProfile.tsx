@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { Camera, Save, User, Mail, Phone, Building, Briefcase, Shield, CheckCircle, AlertCircle, Upload, Trash2 } from 'lucide-react';
+import { Camera, Save, User, Mail, Phone, Building, Shield, CheckCircle, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import ChangePasswordForm from '../auth/ChangePasswordForm';
 
 const roleLabels: Record<string, string> = {
   employee: 'Employee',
@@ -331,16 +332,8 @@ export default function UserProfile() {
               <Shield className="w-4 h-4 text-gray-400" />
               Security
             </h3>
-            <p className="text-xs text-gray-500 mb-4">Password changes are handled through the authentication system.</p>
-            <div className="flex items-start gap-3 bg-blue-50 rounded-xl px-3.5 py-3">
-              <Briefcase className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-blue-700">Need to change your password?</p>
-                <p className="text-xs text-blue-600 mt-0.5">
-                  Use the "Forgot Password" option on the login page, or contact your organization administrator.
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 mb-4">Choose a new password for your account.</p>
+            <ChangePasswordForm />
           </div>
         </div>
       </div>

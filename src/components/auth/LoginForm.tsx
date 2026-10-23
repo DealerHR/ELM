@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { LogIn } from 'lucide-react';
 
 export default function LoginForm() {
@@ -10,6 +11,19 @@ export default function LoginForm() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleForgotPassword = async () => {
+    setError('');
+    if (!email) { setError('Enter your email address first, then click "Forgot password?".'); return; }
+    setLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (resetError) { setError(resetError.message); return; }
+    setResetSent(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +60,11 @@ export default function LoginForm() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+          {resetSent && (
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm">
+              If an account exists for {email}, a password reset link has been sent. Check your inbox and spam folder.
             </div>
           )}
 
@@ -107,11 +126,24 @@ export default function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
+            {!isSignUp && (
+              <div>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="text-sm text-gray-600 hover:text-stratefix-yellow transition disabled:opacity-50"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
             <button
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError('');
+                setResetSent(false);
               }}
               className="text-sm text-gray-600 hover:text-stratefix-yellow transition"
             >
