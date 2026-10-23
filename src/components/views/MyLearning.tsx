@@ -834,6 +834,9 @@ function LearningPathCard({ assignment, pathItems, progress, certifiedCourseIds,
   const completed = pathItems.filter(it => progress[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id)).length;
   const total = pathItems.length;
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const pathStatus = assignment.status === 'completed' || (total > 0 && completed === total)
+    ? 'completed'
+    : (completed > 0 || pathItems.some(it => progress[it.course_id]) ? 'in_progress' : assignment.status);
 
   const isUnlocked = (item: LearningPathItem) => {
     if (item.prerequisite_path_id && !completedPathIds.has(item.prerequisite_path_id)) return false;
@@ -863,8 +866,8 @@ function LearningPathCard({ assignment, pathItems, progress, certifiedCourseIds,
                 <div className="bg-blue-950 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
               </div>
             </div>
-            <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0 ${statusColor(assignment.status)}`}>
-              {assignment.status.replace('_', ' ')}
+            <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0 ${statusColor(pathStatus)}`}>
+              {pathStatus.replace('_', ' ')}
             </span>
             <div className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>
               <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1265,14 +1268,41 @@ export default function MyLearning() {
   const courseAssignments = assignments.filter(a => a.course_id && !a.learning_path_id);
   const pathAssignments = assignments.filter(a => a.learning_path_id);
 
-  const filtered = (list: LearningAssignment[]) => {
-    if (filter === 'all') return list;
-    return list.filter(a => a.status === filter);
+  // What the learner has actually done, regardless of the stored assignment status.
+  // A path counts as in progress as soon as any of its courses has progress.
+  const effectiveStatus = (a: LearningAssignment): 'assigned' | 'in_progress' | 'completed' => {
+    if (a.status === 'completed' || certifiedAssignmentIds.has(a.id)) return 'completed';
+    if (a.learning_path_id) {
+      const items = pathItemsMap[a.learning_path_id] || [];
+      const started = items.some(it => {
+        const p = progressMap[it.course_id];
+        return (p && (p.status === 'in_progress' || p.status === 'completed' || (p.progress_percentage || 0) > 0))
+          || certifiedCourseIds.has(it.course_id)
+          || (moduleProgressMap[it.course_id]?.size || 0) > 0;
+      });
+      if (started) return 'in_progress';
+    } else if (a.course_id) {
+      const p = progressMap[a.course_id];
+      if (a.status === 'in_progress' || (p && (p.status === 'in_progress' || (p.progress_percentage || 0) > 0))
+          || (moduleProgressMap[a.course_id]?.size || 0) > 0) return 'in_progress';
+    }
+    return a.status === 'in_progress' ? 'in_progress' : 'assigned';
   };
 
-  const completedCount = assignments.filter(a => a.status === 'completed' || certifiedAssignmentIds.has(a.id)).length;
-  const inProgressCount = assignments.filter(a => a.status === 'in_progress').length;
-  const totalHours = assignments.reduce((s, a) => s + (a.learning_courses?.duration_hours || 0), 0);
+  const filtered = (list: LearningAssignment[]) => {
+    if (filter === 'all') return list;
+    return list.filter(a => effectiveStatus(a) === filter);
+  };
+
+  const completedCount = assignments.filter(a => effectiveStatus(a) === 'completed').length;
+  const inProgressCount = assignments.filter(a => effectiveStatus(a) === 'in_progress').length;
+  // Hours include the courses inside assigned learning paths.
+  const totalHours = assignments.reduce((s, a) => {
+    if (a.learning_path_id) {
+      return s + (pathItemsMap[a.learning_path_id] || []).reduce((t, it) => t + (it.learning_courses?.duration_hours || 0), 0);
+    }
+    return s + (a.learning_courses?.duration_hours || 0);
+  }, 0);
 
   if (loading) {
     return (
