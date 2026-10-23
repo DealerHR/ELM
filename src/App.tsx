@@ -5,6 +5,7 @@ import ChangePasswordForm from './components/auth/ChangePasswordForm';
 import { supabase } from './lib/supabase';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import MobileNav from './components/layout/MobileNav';
 import Dashboard from './components/views/Dashboard';
 import Organizations from './components/views/Organizations';
 import Departments from './components/views/Departments';
@@ -41,7 +42,6 @@ function AppContent() {
     return hash === '#/assess' || hash.startsWith('#/assess');
   });
   const [learnerMode, setLearnerMode] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Set when the user arrives through a "forgot password" email link.
   const [passwordRecovery, setPasswordRecovery] = useState(false);
 
@@ -150,30 +150,34 @@ function AppContent() {
     }
   };
 
+  const toggleLearnerMode = () => {
+    setLearnerMode(v => {
+      setActiveView(v ? 'dashboard' : 'my-learning');
+      return !v;
+    });
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden max-w-full">
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
         learnerMode={learnerMode}
-        onToggleLearnerMode={() => {
-          setLearnerMode(v => {
-            setActiveView(v ? 'dashboard' : 'my-learning');
-            return !v;
-          });
-        }}
-        isMobileOpen={mobileSidebarOpen}
-        onMobileClose={() => setMobileSidebarOpen(false)}
+        onToggleLearnerMode={toggleLearnerMode}
       />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Header
-          onNavigate={setActiveView}
-          onMenuOpen={() => setMobileSidebarOpen(true)}
-        />
-        <main className="flex-1 overflow-y-auto">
+        <Header activeView={activeView} onNavigate={setActiveView} />
+        {/* Bottom padding on small screens keeps content clear of the tab bar. */}
+        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
           {renderView()}
         </main>
       </div>
+      <MobileNav
+        activeView={activeView}
+        onViewChange={setActiveView}
+        learnerMode={learnerMode}
+        onToggleLearnerMode={toggleLearnerMode}
+      />
     </div>
   );
 }

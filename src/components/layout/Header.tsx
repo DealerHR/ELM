@@ -1,22 +1,16 @@
-import { LogOut, User, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from './NotificationBell';
+import { pageTitle } from '../../lib/navigation';
 
 interface HeaderProps {
+  activeView: string;
   onNavigate?: (view: string) => void;
-  onMenuOpen?: () => void;
 }
 
-export default function Header({ onNavigate, onMenuOpen }: HeaderProps) {
-  const { signOut, userProfile } = useAuth();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+/** A 48 px bar: the current page's name on the left, notifications and profile on the right. */
+export default function Header({ activeView, onNavigate }: HeaderProps) {
+  const { userProfile } = useAuth();
+  const title = pageTitle(activeView);
 
   const initials = userProfile?.full_name
     ?.split(' ')
@@ -26,60 +20,28 @@ export default function Header({ onNavigate, onMenuOpen }: HeaderProps) {
     .toUpperCase() || '?';
 
   return (
-    <header className="bg-white border-b border-gray-100 px-3 sm:px-5 py-2.5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={onMenuOpen}
-            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition flex-shrink-0"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="min-w-0">
-            <h2 className="text-sm sm:text-base font-bold text-gray-900 truncate">
-              Welcome back, {userProfile?.full_name?.split(' ')[0]}
-            </h2>
-            <p className="text-xs text-gray-400 hidden sm:block">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
-          </div>
-        </div>
+    <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-5 flex items-center gap-3">
+      <div className="min-w-0 flex items-baseline gap-2">
+        <span className="lg:hidden text-xs font-bold text-stratefix-black">ELM</span>
+        <h2 className="text-[15px] font-semibold text-gray-900 truncate">{title}</h2>
+      </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <NotificationBell />
+      <div className="flex-1" />
 
-          <button
-            onClick={() => onNavigate?.('user-profile')}
-            className="flex items-center gap-1.5 px-1.5 sm:px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-colors group"
-            title="My Profile"
-          >
-            {userProfile?.avatar_url ? (
-              <img
-                src={userProfile.avatar_url}
-                alt={userProfile.full_name}
-                className="w-7 h-7 rounded-full object-cover ring-2 ring-gray-200"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-stratefix-black text-stratefix-yellow flex items-center justify-center text-xs font-bold ring-2 ring-gray-200">
-                {initials}
-              </div>
-            )}
-            <User className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors hidden sm:block" />
-          </button>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm font-medium hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <NotificationBell />
+        <button
+          onClick={() => onNavigate?.('user-profile')}
+          className="hidden lg:flex items-center gap-2 pl-1.5 pr-2.5 h-8 rounded-lg hover:bg-gray-100 transition-colors"
+          title="My profile"
+        >
+          {userProfile?.avatar_url ? (
+            <img src={userProfile.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+          ) : (
+            <span className="w-6 h-6 rounded-full bg-stratefix-black text-stratefix-yellow flex items-center justify-center text-[10px] font-bold">{initials}</span>
+          )}
+          <span className="text-xs font-medium text-gray-700 max-w-[140px] truncate">{userProfile?.full_name}</span>
+        </button>
       </div>
     </header>
   );
