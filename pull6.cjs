@@ -1,0 +1,2 @@
+const fs=require('fs'),p=require('path');const F='src/components/views/MyLearning.tsx'.split(' ');const B='https://raw.githubusercontent.com/DealerHR/ELM/c991d59/';
+(async()=>{let ok=0;for(const f of F){try{const r=await fetch(B+f);if(!r.ok)throw new Error(r.status);fs.mkdirSync(p.dirname(f),{recursive:true});fs.writeFileSync(f,await r.text());ok++;console.log('OK',f)}catch(e){console.log('FAIL',f,e.message)}}console.log('DONE',ok,'of',F.length)})();
