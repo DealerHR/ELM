@@ -1,0 +1,2 @@
+const fs=require('fs'),p=require('path');const F='src/App.tsx src/index.css src/lib/navigation.ts src/components/layout/Sidebar.tsx src/components/layout/Header.tsx src/components/layout/MobileNav.tsx'.split(' ');const B='https://raw.githubusercontent.com/DealerHR/ELM/a944f39/';
+(async()=>{let ok=0;for(const f of F){try{const r=await fetch(B+f);if(!r.ok)throw new Error(r.status);fs.mkdirSync(p.dirname(f),{recursive:true});fs.writeFileSync(f,await r.text());ok++;console.log('OK',f)}catch(e){console.log('FAIL',f,e.message)}}console.log('DONE',ok,'of',F.length)})();
