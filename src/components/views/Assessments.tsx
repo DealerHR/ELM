@@ -92,12 +92,8 @@ export default function Assessments() {
   }
 
   async function checkAIConfig() {
-    const { data } = await supabase
-      .from('platform_settings')
-      .select('value')
-      .eq('key', 'openai_api_key')
-      .maybeSingle();
-    setAiConfigured(!!(data?.value));
+    const { data } = await supabase.rpc('ai_is_configured');
+    setAiConfigured(data === true);
   }
 
   async function loadAssessments() {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Users, Mail, Phone, Building, Briefcase, CreditCard as Edit2, Trash2, UserCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { callEdgeFunction, generateTemporaryPassword } from '../../lib/edgeFunctions';
 
 interface Employee {
   id: string;
@@ -47,6 +48,7 @@ export default function Employees() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [myEmployeeId, setMyEmployeeId] = useState<string | null>(null);
   const [teamFilter, setTeamFilter] = useState<'all' | 'my-team'>('all');
+  const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; password: string } | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -142,37 +144,28 @@ export default function Employees() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      // A fresh one-off password per person. It is shown once, to the person creating the account.
+      const temporaryPassword = generateTemporaryPassword();
 
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-org-employee`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Apikey': supabaseAnonKey,
-        },
-        body: JSON.stringify({
-          organization_id: userProfile?.organization_id,
-          full_name: formData.full_name,
-          email: formData.email,
-          password: 'ChangeMe123!',
-          phone: formData.phone || null,
-          role: formData.role,
-          department_id: formData.department_id || null,
-          designation_id: formData.designation_id || null,
-          employment_status: formData.employment_status,
-          reporting_manager_id: formData.reporting_manager_employee_id || null,
-        }),
+      const result = await callEdgeFunction<{ success: boolean; error?: string }>('create-org-employee', {
+        organization_id: userProfile?.organization_id,
+        full_name: formData.full_name,
+        email: formData.email,
+        password: temporaryPassword,
+        phone: formData.phone || null,
+        role: formData.role,
+        department_id: formData.department_id || null,
+        designation_id: formData.designation_id || null,
+        employment_status: formData.employment_status,
+        reporting_manager_id: formData.reporting_manager_employee_id || null,
       });
-
-      const result = await res.json();
 
       if (!result.success) {
         alert(result.error || 'Error creating employee. Please try again.');
         return;
       }
 
+      setCreatedCredentials({ name: formData.full_name, email: formData.email, password: temporaryPassword });
       setShowForm(false);
       setFormData({
         full_name: '',
@@ -187,7 +180,7 @@ export default function Employees() {
       loadData();
     } catch (error) {
       console.error('Error creating employee:', error);
-      alert('Error creating employee. Please try again.');
+      alert(error instanceof Error ? error.message : 'Error creating employee. Please try again.');
     }
   };
 
@@ -472,6 +465,36 @@ export default function Employees() {
         </div>
       )}
 
+      {createdCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-5 w-full max-w-md">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Account created for {createdCredentials.name}</h3>
+            <p className="text-xs text-gray-600 mb-3">
+              Share these login details with them now. The password is shown only once and cannot be looked up later.
+            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm space-y-1.5 font-mono">
+              <p><span className="text-gray-500">Email:</span> {createdCredentials.email}</p>
+              <p><span className="text-gray-500">Temporary password:</span> <span className="font-bold">{createdCredentials.password}</span></p>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">Ask them to change the password on first login.</p>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => navigator.clipboard?.writeText(`Email: ${createdCredentials.email}\nTemporary password: ${createdCredentials.password}`)}
+                className="flex-1 border border-gray-300 text-gray-700 py-1.5 text-sm rounded-lg hover:bg-gray-50 transition"
+              >
+                Copy details
+              </button>
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="flex-1 bg-blue-950 text-white py-1.5 text-sm rounded-lg hover:bg-blue-900 transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-4 w-full max-w-sm">
@@ -605,7 +628,7 @@ export default function Employees() {
               </div>
               <div className="bg-blue-50 p-3 rounded-lg">
                 <p className="text-xs text-blue-900">
-                  <strong>Note:</strong> A temporary password 'ChangeMe123!' will be set. Employee should change it on first login.
+                  <strong>Note:</strong> A one-off temporary password will be generated and shown to you once. Share it with the employee; they should change it on first login.
                 </p>
               </div>
               <div className="flex gap-2">

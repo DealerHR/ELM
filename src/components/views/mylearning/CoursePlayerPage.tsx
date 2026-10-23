@@ -5,7 +5,7 @@ import {
   List, X, Play, Clock, Lock, Video, Presentation,
   ClipboardList, AlignLeft, CheckCircle, Award,
 } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { supabase, QUIZ_PASS_MARK } from '../../../lib/supabase';
 
 export interface CourseModule {
   id: string;
@@ -329,7 +329,7 @@ export default function CoursePlayerPage({
       }
       if (quizResult) {
         const pct = quizResult.percentage;
-        const passed = pct >= 70;
+        const passed = pct >= QUIZ_PASS_MARK;
         return (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-sm">

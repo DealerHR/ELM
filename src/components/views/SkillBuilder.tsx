@@ -300,12 +300,8 @@ export default function SkillBuilder() {
   };
 
   const checkAIConfig = async () => {
-    const { data } = await supabase
-      .from('platform_settings')
-      .select('value')
-      .eq('key', 'openrouter_api_key')
-      .maybeSingle();
-    setAiConfigured(!!(data?.value));
+    const { data } = await supabase.rpc('ai_is_configured');
+    setAiConfigured(data === true);
   };
 
   const loadSkills = async () => {

@@ -1,11 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+import { adminClient, corsHeaders, getCaller } from "../_shared/auth.ts";
 
 const DIMENSION_WEIGHTS: Record<string, Record<string, number>> = {
   entry: {
@@ -69,7 +63,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { assessment_id } = await req.json();
+    const { assessment_id, access_code } = await req.json();
     if (!assessment_id) {
       return new Response(JSON.stringify({ error: "assessment_id required" }), {
         status: 400,
@@ -77,10 +71,38 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = adminClient();
+
+    // Who may score an assessment?
+    //  - the candidate, by presenting the access code of the invitation that owns it
+    //  - a signed-in HR / admin user of the same organisation (re-running a score)
+    let authorised = false;
+    if (typeof access_code === "string" && access_code.length >= 6) {
+      const { data: inv } = await supabase
+        .from("assessment_invitations")
+        .select("id, growth_assessment_id, expires_at")
+        .eq("access_code", access_code.trim().toUpperCase())
+        .maybeSingle();
+      authorised = !!inv && inv.growth_assessment_id === assessment_id;
+    }
+    if (!authorised) {
+      const caller = await getCaller(req, supabase);
+      if (caller && ["platform_admin", "admin", "hr"].includes(caller.role)) {
+        const { data: owned } = await supabase
+          .from("candidate_growth_assessments")
+          .select("id, candidates!inner(organization_id)")
+          .eq("id", assessment_id)
+          .maybeSingle();
+        const orgId = (owned as unknown as { candidates?: { organization_id?: string } } | null)?.candidates?.organization_id;
+        authorised = caller.role === "platform_admin" || (!!orgId && orgId === caller.organization_id);
+      }
+    }
+    if (!authorised) {
+      return new Response(JSON.stringify({ error: "Not authorised to score this assessment" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: assessment, error: aErr } = await supabase
       .from("candidate_growth_assessments")
@@ -195,7 +217,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const level = (assessment.level as string) in DIMENSION_WEIGHTS ? assessment.level as string : "mid";
-    const levelWeights = DIMENSION_WEIGHTS[level];
+    let levelWeights = DIMENSION_WEIGHTS[level];
+
+    // The template table is the source of truth for weights; the map above is a fallback.
+    const { data: template } = await supabase
+      .from("growth_profile_templates")
+      .select("adaptability_learning_weight, initiative_ownership_weight, collaboration_team_weight, resilience_stress_weight, growth_curiosity_weight")
+      .eq("level", level)
+      .maybeSingle();
+    if (template) {
+      levelWeights = {
+        adaptability_learning: template.adaptability_learning_weight,
+        initiative_ownership: template.initiative_ownership_weight,
+        collaboration_team: template.collaboration_team_weight,
+        resilience_stress: template.resilience_stress_weight,
+        growth_curiosity: template.growth_curiosity_weight,
+      };
+    }
     let overallScore = 0;
     let totalWeight = 0;
     for (const dim of DIMENSIONS) {
