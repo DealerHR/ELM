@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
+  ChevronDown,
   BookOpen, Clock, CheckCircle, Target, ArrowRight, Award, BarChart2,
   RefreshCw, CheckCircle2, Circle, AlertCircle, Layers, Calendar, XCircle, Lock,
   Users, Briefcase, Monitor, HelpCircle, ClipboardList, ChevronRight, ChevronLeft
@@ -636,207 +637,168 @@ function InductionSection({ employeeId, completedPathIds }: InductionSectionProp
   );
 }
 
-// ─── Single Course Card ───────────────────────────────────────────────────────
+// ─── Shared row pieces ────────────────────────────────────────────────────────
 
-const CONTENT_TYPE_ICONS: Record<string, React.ElementType> = {
-  video: BookOpen,
-  document: BookOpen,
-  presentation: BookOpen,
-  quiz: HelpCircle,
-  assignment: ClipboardList,
-  external_link: Target,
+type RowStatus = 'not_started' | 'in_progress' | 'completed' | 'locked' | 'awaiting_cert';
+
+const STATUS_CHIP: Record<RowStatus, { label: string; cls: string }> = {
+  not_started: { label: 'Not started', cls: 'bg-gray-100 text-gray-600' },
+  in_progress: { label: 'In progress', cls: 'bg-blue-50 text-blue-700' },
+  completed: { label: 'Done', cls: 'bg-emerald-50 text-emerald-700' },
+  locked: { label: 'Locked', cls: 'bg-gray-100 text-gray-400' },
+  awaiting_cert: { label: 'Awaiting sign-off', cls: 'bg-amber-50 text-amber-700' },
 };
 
-interface CourseCardProps {
-  assignment: LearningAssignment;
-  progress: CourseProgress | undefined;
-  isCertified: boolean;
-  modules: CourseModule[];
-  completedModuleIds: Set<string>;
-  onStart: (assignmentId: string, courseId: string) => void;
-  onComplete: (progressId: string, assignmentId: string) => void;
-  onTakeQuiz: (assignment: LearningAssignment) => void;
-  onModuleComplete: (moduleId: string, courseId: string, assignmentId: string) => void;
-  onOpenCourse: (courseId: string, courseTitle: string, assignmentId: string, readOnly?: boolean) => void;
-  onModuleQuiz: (module: CourseModule, assignment: LearningAssignment) => void;
-  saving: string | null;
-  savingModuleId: string | null;
+function StatusChip({ status }: { status: RowStatus }) {
+  const c = STATUS_CHIP[status];
+  return <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${c.cls}`}>{c.label}</span>;
 }
 
-function CourseCard({
-  assignment, progress, isCertified, modules, completedModuleIds,
-  onStart, onComplete, onTakeQuiz, onModuleComplete, onOpenCourse, onModuleQuiz, saving, savingModuleId,
-}: CourseCardProps) {
-  const course = assignment.learning_courses;
-  if (!course) return null;
-
-  const courseStatus = isCertified ? 'completed' : (progress?.status || assignment.status);
-  const isSaving = saving === assignment.id;
-  const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date() && courseStatus !== 'completed';
-  const certRequired = needsLDCert(course);
-  const isAssessment = course.is_assessment;
-
-  const hasModules = modules.length > 0;
-  const nonQuizModules = modules.filter(m => m.content_type !== 'quiz');
-  const mandatoryModules = modules.filter(m => m.is_mandatory);
-  const allMandatoryDone = mandatoryModules.length > 0 && mandatoryModules.every(m => completedModuleIds.has(m.id));
-  const doneCount = modules.filter(m => completedModuleIds.has(m.id)).length;
-  const progressPct = hasModules ? Math.round((doneCount / modules.length) * 100) : (progress?.progress_percentage || 0);
-  const canMarkComplete = !hasModules || allMandatoryDone;
-  const hasViewableContent = nonQuizModules.some(m => m.content_file_path || m.content_url || true);
-
+function ProgressBar({ pct, className = '' }: { pct: number; className?: string }) {
   return (
-    <div className={`bg-white border-2 rounded-xl overflow-hidden transition-all hover:shadow-md flex flex-col ${courseStatus === 'completed' ? 'border-emerald-200' : isOverdue ? 'border-red-200' : 'border-gray-200'}`}>
-      <div className="p-4 flex-1">
-        <div className="flex items-start gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${courseStatus === 'completed' ? 'bg-emerald-100' : isAssessment ? 'bg-violet-100' : 'bg-blue-50'}`}>
-            {isAssessment
-              ? <ClipboardList className={`w-5 h-5 ${courseStatus === 'completed' ? 'text-emerald-600' : 'text-violet-600'}`} />
-              : <BookOpen className={`w-5 h-5 ${courseStatus === 'completed' ? 'text-emerald-600' : 'text-blue-700'}`} />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-gray-900 line-clamp-2">{course.title}</h3>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              {course.delivery_type && deliveryBadge(course.delivery_type)}
-              {isAssessment && <span className="text-xs px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded font-medium flex items-center gap-1"><HelpCircle className="w-3 h-3" />Assessment</span>}
-              {isOverdue && <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-700">Overdue</span>}
-            </div>
-          </div>
-        </div>
-
-        {course.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{course.description}</p>}
-
-        <div className="flex items-center gap-3 text-xs text-gray-400 mb-3 flex-wrap">
-          {course.duration_hours && <div className="flex items-center gap-1"><Clock className="w-3 h-3" />{course.duration_hours}h</div>}
-          {hasModules && courseStatus !== 'assigned' && (
-            <div className="flex items-center gap-1 text-gray-500 font-medium">
-              <CheckCircle2 className="w-3 h-3" />{doneCount}/{modules.length} modules
-            </div>
-          )}
-          {assignment.due_date && (
-            <div className={`flex items-center gap-1 ${isOverdue ? 'text-red-500 font-medium' : ''}`}>
-              <Calendar className="w-3 h-3" />Due {new Date(assignment.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-            </div>
-          )}
-        </div>
-
-        {courseStatus === 'in_progress' && (
-          <div className="mb-3">
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div className="bg-blue-600 h-1.5 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
-            </div>
-            <p className="text-[10px] text-gray-400 mt-1">{progressPct}% complete</p>
-          </div>
-        )}
-
-        {certRequired && courseStatus === 'in_progress' && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 mb-2">
-            <Award className="w-3.5 h-3.5" />Awaiting L&D Certification
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 pb-4 space-y-2">
-        {courseStatus === 'assigned' && (
-          <button
-            onClick={() => isAssessment ? onTakeQuiz(assignment) : onStart(assignment.id, course.id)}
-            disabled={isSaving}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 ${isAssessment ? 'bg-violet-700 text-white' : 'bg-blue-950 text-white hover:bg-blue-900'}`}
-          >
-            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : isAssessment ? <HelpCircle className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-            {isAssessment ? 'Take Assessment' : 'Start Course'}
-          </button>
-        )}
-
-        {courseStatus === 'in_progress' && !certRequired && !isAssessment && hasModules && hasViewableContent && (
-          <button
-            onClick={() => onOpenCourse(course.id, course.title, assignment.id)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-950 text-white rounded-xl text-sm font-semibold hover:bg-blue-800 transition"
-          >
-            <ArrowRight className="w-4 h-4" />
-            Continue Learning
-          </button>
-        )}
-
-        {courseStatus === 'in_progress' && !certRequired && !isAssessment && progress && canMarkComplete && !hasModules && (
-          <button
-            onClick={() => onComplete(progress.id, assignment.id)}
-            disabled={isSaving}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
-          >
-            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            Mark Complete
-          </button>
-        )}
-
-        {courseStatus === 'in_progress' && !certRequired && !isAssessment && hasModules && allMandatoryDone && progress && (
-          <button
-            onClick={() => onComplete(progress.id, assignment.id)}
-            disabled={isSaving}
-            className="w-full flex items-center justify-center gap-2 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
-          >
-            {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-            Complete Course
-          </button>
-        )}
-
-        {courseStatus === 'in_progress' && isAssessment && (
-          <button
-            onClick={() => onTakeQuiz(assignment)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-violet-700 text-white rounded-xl text-sm font-semibold hover:bg-violet-800 transition"
-          >
-            <HelpCircle className="w-4 h-4" /> Retake Assessment
-          </button>
-        )}
-
-        {courseStatus === 'completed' && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <CheckCircle className="w-3.5 h-3.5" />
-              Completed {progress?.completed_at ? new Date(progress.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
-            </div>
-            {hasModules && !isAssessment && (
-              <button
-                onClick={() => onOpenCourse(course.id, course.title, assignment.id, true)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition"
-              >
-                <BookOpen className="w-3 h-3" />
-                View Again
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+    <div className={`h-1 bg-gray-200 rounded-full overflow-hidden ${className}`} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className={`h-full rounded-full ${pct >= 100 ? 'bg-emerald-500' : 'bg-stratefix-yellow'}`} style={{ width: `${Math.min(100, pct)}%` }} />
     </div>
   );
 }
 
-// ─── Learning Path Accordion ──────────────────────────────────────────────────
+function ActionButton({ kind, children, onClick, disabled }: { kind: 'primary' | 'secondary' | 'link'; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  const base = 'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold transition disabled:opacity-50 whitespace-nowrap';
+  const cls = kind === 'primary'
+    ? 'bg-stratefix-yellow text-stratefix-black hover:bg-yellow-400'
+    : kind === 'secondary'
+      ? 'border border-gray-300 text-gray-800 hover:bg-gray-50'
+      : 'text-blue-800 hover:underline px-1';
+  return <button onClick={onClick} disabled={disabled} className={`${base} ${cls}`}>{children}</button>;
+}
 
-interface PathProps {
+/** Decide what a learner can do with one course and how far along they are. */
+function courseState(args: {
+  course: LearningCourse;
+  prog: CourseProgress | undefined;
+  certified: boolean;
+  modules: CourseModule[];
+  completedModuleIds: Set<string>;
+  assignmentStatus?: string;
+  unlocked?: boolean;
+}) {
+  const { course, prog, certified, modules, completedModuleIds, assignmentStatus, unlocked = true } = args;
+  const hasModules = modules.length > 0;
+  const doneCount = modules.filter(m => completedModuleIds.has(m.id)).length;
+  const requiredDone = hasModules && isCourseComplete(modules, completedModuleIds);
+  const certRequired = needsLDCert(course);
+  const completed = certified || prog?.status === 'completed' || assignmentStatus === 'completed';
+  const started = !!prog || doneCount > 0 || assignmentStatus === 'in_progress';
+
+  let status: RowStatus = 'not_started';
+  if (!unlocked) status = 'locked';
+  else if (completed) status = 'completed';
+  else if (started && certRequired && (requiredDone || !hasModules)) status = 'awaiting_cert';
+  else if (started) status = 'in_progress';
+
+  const pct = completed ? 100 : hasModules ? Math.round((doneCount / modules.length) * 100) : (prog?.progress_percentage || 0);
+  return { status, pct, hasModules, doneCount, requiredDone, certRequired };
+}
+
+// ─── Course row ───────────────────────────────────────────────────────────────
+
+interface CourseRowProps {
+  assignment: LearningAssignment;
+  progress?: CourseProgress;
+  isCertified: boolean;
+  modules: CourseModule[];
+  completedModuleIds: Set<string>;
+  onStart: (assignmentId: string, courseId: string, courseTitle: string, modules: CourseModule[]) => void;
+  onComplete: (progressId: string, assignmentId: string) => void;
+  onTakeQuiz: (assignment: LearningAssignment) => void;
+  onOpenCourse: (courseId: string, courseTitle: string, assignmentId: string, readOnly?: boolean) => void;
+  saving: string | null;
+}
+
+function CourseRow({ assignment, progress, isCertified, modules, completedModuleIds, onStart, onComplete, onTakeQuiz, onOpenCourse, saving }: CourseRowProps) {
+  const course = assignment.learning_courses;
+  if (!course) return null;
+  const st = courseState({ course, prog: progress, certified: isCertified, modules, completedModuleIds, assignmentStatus: assignment.status });
+  const isSaving = saving === assignment.id;
+  const overdue = assignment.due_date && new Date(assignment.due_date) < new Date() && st.status !== 'completed';
+  const isAssessment = course.is_assessment;
+  const delivery = course.delivery_type ? DELIVERY_META[course.delivery_type]?.label : null;
+
+  const meta = [
+    isAssessment ? 'Assessment' : delivery,
+    course.duration_hours ? `${course.duration_hours} h` : null,
+    st.hasModules ? `${st.doneCount}/${modules.length} modules` : null,
+    assignment.due_date ? `${overdue ? 'Overdue' : 'Due'} ${new Date(assignment.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : null,
+  ].filter(Boolean).join(' · ');
+
+  const action = (() => {
+    if (st.status === 'completed') {
+      return st.hasModules
+        ? <ActionButton kind="link" onClick={() => onOpenCourse(course.id, course.title, assignment.id, true)}>Review</ActionButton>
+        : null;
+    }
+    if (st.status === 'awaiting_cert') return null;
+    if (isAssessment && !st.hasModules) {
+      return <ActionButton kind="primary" onClick={() => onTakeQuiz(assignment)}>Take assessment</ActionButton>;
+    }
+    if (st.status === 'not_started') {
+      return <ActionButton kind="primary" onClick={() => onStart(assignment.id, course.id, course.title, modules)} disabled={isSaving}>{isSaving ? 'Starting…' : 'Start'}</ActionButton>;
+    }
+    if (st.hasModules) {
+      return <ActionButton kind="primary" onClick={() => onOpenCourse(course.id, course.title, assignment.id)}>Continue</ActionButton>;
+    }
+    if (progress && !st.certRequired) {
+      return <ActionButton kind="secondary" onClick={() => onComplete(progress.id, assignment.id)} disabled={isSaving}>Mark done</ActionButton>;
+    }
+    return null;
+  })();
+
+  return (
+    <li className="flex items-center gap-3 px-3 py-3 sm:px-4">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${st.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : isAssessment ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-blue-700'}`}>
+        {isAssessment ? <ClipboardList className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-[13px] sm:text-sm font-semibold text-gray-900 leading-tight">{course.title}</p>
+          <StatusChip status={st.status} />
+        </div>
+        <p className={`text-xs mt-0.5 ${overdue ? 'text-red-600' : 'text-gray-500'}`}>{meta}</p>
+        {st.status === 'in_progress' && st.hasModules && <ProgressBar pct={st.pct} className="mt-2 max-w-[200px]" />}
+        {st.status === 'awaiting_cert' && <p className="text-xs text-amber-700 mt-0.5">Completion is signed off by L&amp;D after the session.</p>}
+      </div>
+      {action && <div className="flex-shrink-0">{action}</div>}
+    </li>
+  );
+}
+
+// ─── Learning path row ────────────────────────────────────────────────────────
+
+interface PathRowProps {
   assignment: LearningAssignment;
   pathItems: LearningPathItem[];
   progress: Record<string, CourseProgress>;
   certifiedCourseIds: Set<string>;
   completedPathIds: Set<string>;
-  onStartCourse: (assignmentId: string, courseId: string) => void;
-  onCompleteCourse: (progressId: string, assignmentId: string) => void;
-  saving: string | null;
   courseModulesMap: Record<string, CourseModule[]>;
+  moduleProgressMap: Record<string, Set<string>>;
+  onStartCourse: (assignmentId: string, courseId: string, courseTitle: string, modules: CourseModule[]) => void;
+  onCompleteCourse: (progressId: string, assignmentId: string) => void;
   onOpenCourse: (courseId: string, courseTitle: string, assignmentId: string, readOnly?: boolean) => void;
+  saving: string | null;
 }
 
-function LearningPathCard({ assignment, pathItems, progress, certifiedCourseIds, completedPathIds, onStartCourse, onCompleteCourse, saving, courseModulesMap, onOpenCourse }: PathProps) {
-  const [expanded, setExpanded] = useState(false);
+function PathRow({ assignment, pathItems, progress, certifiedCourseIds, completedPathIds, courseModulesMap, moduleProgressMap, onStartCourse, onCompleteCourse, onOpenCourse, saving }: PathRowProps) {
   const path = assignment.learning_paths;
-  if (!path) return null;
-
-  const completed = pathItems.filter(it => progress[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id)).length;
   const total = pathItems.length;
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const pathStatus = assignment.status === 'completed' || (total > 0 && completed === total)
-    ? 'completed'
-    : (completed > 0 || pathItems.some(it => progress[it.course_id]) ? 'in_progress' : assignment.status);
+  const completedCount = pathItems.filter(it => progress[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id)).length;
+  const started = completedCount > 0 || pathItems.some(it => progress[it.course_id] || (moduleProgressMap[it.course_id]?.size || 0) > 0);
+  const pathStatus: RowStatus = assignment.status === 'completed' || (total > 0 && completedCount === total) ? 'completed' : started ? 'in_progress' : 'not_started';
+  const [expanded, setExpanded] = useState(pathStatus !== 'completed');
+  if (!path) return null;
+  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+  const hours = pathItems.reduce((s, it) => s + (it.learning_courses?.duration_hours || 0), 0);
+  const overdue = assignment.due_date && new Date(assignment.due_date) < new Date() && pathStatus !== 'completed';
 
   const isUnlocked = (item: LearningPathItem) => {
     if (item.prerequisite_path_id && !completedPathIds.has(item.prerequisite_path_id)) return false;
@@ -847,114 +809,134 @@ function LearningPathCard({ assignment, pathItems, progress, certifiedCourseIds,
   };
 
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
-      <button onClick={() => setExpanded(e => !e)} className="w-full text-left">
-        <div className="flex items-center gap-3 p-3 sm:p-4">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
+    <li className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-3 px-3 py-3 sm:px-4 text-left hover:bg-gray-50/60 transition"
+      >
+        <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center flex-shrink-0"><Layers className="w-4 h-4" /></div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[13px] sm:text-sm font-semibold text-gray-900 leading-tight">{path.title}</p>
+            <span className="text-[11px] text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5">Path</span>
+            <StatusChip status={pathStatus} />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="text-sm font-bold text-gray-900 truncate">{path.title}</h3>
-              <span className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-700 rounded font-medium flex-shrink-0">Path</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-0.5">{completed}/{total} courses · {pct}%</p>
-          </div>
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <div className="text-right hidden sm:block">
-              <div className="w-16 bg-gray-100 rounded-full h-1.5 mb-1">
-                <div className="bg-blue-950 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-            <span className={`text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0 ${statusColor(pathStatus)}`}>
-              {pathStatus.replace('_', ' ')}
-            </span>
-            <div className={`w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </div>
+          <p className={`text-xs mt-0.5 ${overdue ? 'text-red-600' : 'text-gray-500'}`}>
+            {completedCount} of {total} courses done{hours ? ` · ${hours} h` : ''}
+            {assignment.due_date ? ` · ${overdue ? 'Overdue' : 'Due'} ${new Date(assignment.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+          </p>
         </div>
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <ProgressBar pct={pct} className="w-28" />
+          <span className="text-xs text-gray-500 w-9 text-right">{pct}%</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
+      <div className="sm:hidden px-3 pb-2 -mt-1"><ProgressBar pct={pct} /></div>
 
       {expanded && (
-        <div className="border-t border-gray-100">
+        <ol className="border-t border-gray-100">
           {pathItems.map((item, idx) => {
             const course = item.learning_courses;
             if (!course) return null;
+            const mods = courseModulesMap[item.course_id] || [];
+            const doneIds = moduleProgressMap[item.course_id] || new Set<string>();
             const prog = progress[item.course_id];
-            const isCertified = certifiedCourseIds.has(item.course_id);
-            const courseStatus = isCertified ? 'completed' : (prog?.status || 'not_started');
             const unlocked = isUnlocked(item);
-            const isSaving = saving === assignment.id + item.course_id;
-            const certRequired = needsLDCert(course);
+            const st = courseState({ course, prog, certified: certifiedCourseIds.has(item.course_id), modules: mods, completedModuleIds: doneIds, unlocked });
+            const isSaving = saving === assignment.id;
+            const current = st.status === 'in_progress';
 
-            const courseModules = courseModulesMap[item.course_id] || [];
-            const hasModules = courseModules.length > 0;
+            const marker = st.status === 'completed'
+              ? <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center"><CheckCircle2 className="w-3 h-3" /></span>
+              : current
+                ? <span className="w-5 h-5 rounded-full border-2 border-stratefix-yellow bg-white" />
+                : st.status === 'locked'
+                  ? <span className="w-5 h-5 rounded-full border border-gray-200 bg-gray-50 text-gray-400 flex items-center justify-center"><Lock className="w-2.5 h-2.5" /></span>
+                  : <span className="w-5 h-5 rounded-full border border-gray-300 text-gray-500 text-[10px] font-semibold flex items-center justify-center">{idx + 1}</span>;
+
+            const action = (() => {
+              if (st.status === 'locked') {
+                const prereq = pathItems.find(p => p.id === item.prerequisite_item_id);
+                return <span className="text-xs text-gray-400">{prereq ? `After ${prereq.learning_courses?.title?.split(':')[0] || 'previous'}` : 'Locked'}</span>;
+              }
+              if (st.status === 'completed') {
+                return st.hasModules ? <ActionButton kind="link" onClick={() => onOpenCourse(item.course_id, course.title, assignment.id, true)}>Review</ActionButton> : null;
+              }
+              if (st.status === 'awaiting_cert') return <span className="text-xs text-amber-700">L&amp;D sign-off</span>;
+              if (st.status === 'not_started') {
+                return <ActionButton kind={idx === pathItems.findIndex(p => isUnlocked(p) && !(progress[p.course_id]?.status === 'completed' || certifiedCourseIds.has(p.course_id))) ? 'primary' : 'secondary'} onClick={() => onStartCourse(assignment.id, course.id, course.title, mods)} disabled={isSaving}>Start</ActionButton>;
+              }
+              if (st.hasModules) return <ActionButton kind="primary" onClick={() => onOpenCourse(item.course_id, course.title, assignment.id)}>Continue</ActionButton>;
+              if (prog && !st.certRequired) return <ActionButton kind="secondary" onClick={() => onCompleteCourse(prog.id, assignment.id)} disabled={isSaving}>Mark done</ActionButton>;
+              return null;
+            })();
 
             return (
-              <div key={item.id} className="border-b border-gray-50 last:border-b-0">
-                <div className={`flex items-center gap-3 px-4 py-3 ${!unlocked ? 'opacity-50' : ''}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${courseStatus === 'completed' ? 'bg-emerald-500' : courseStatus === 'in_progress' ? 'bg-blue-600' : unlocked ? 'bg-gray-200' : 'bg-gray-100'}`}>
-                    {courseStatus === 'completed' ? <CheckCircle2 className="w-4 h-4 text-white" />
-                      : courseStatus === 'in_progress' ? <Circle className="w-4 h-4 text-white" />
-                      : unlocked ? <span className="text-xs font-bold text-gray-500">{idx + 1}</span>
-                      : <Lock className="w-3 h-3 text-gray-400" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
-                      {course.duration_hours && <span>{course.duration_hours}h</span>}
-                      {item.is_mandatory && <span className="text-red-500 font-medium">Required</span>}
-                      {course.delivery_type && DELIVERY_META[course.delivery_type] && (
-                        <span className={`px-1 py-0.5 rounded text-xs ${DELIVERY_META[course.delivery_type].color}`}>
-                          {DELIVERY_META[course.delivery_type].label}
-                        </span>
-                      )}
-                      {certRequired && courseStatus === 'in_progress' && (
-                        <span className="text-amber-600 font-medium">Awaiting Certification</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 flex items-center gap-2">
-                    {unlocked && courseStatus === 'not_started' && (
-                      <button onClick={() => onStartCourse(assignment.id, course.id)}
-                        className="text-xs px-2.5 py-1 bg-blue-950 text-white rounded-lg font-semibold hover:bg-blue-900 transition">Start</button>
-                    )}
-                    {courseStatus === 'in_progress' && prog && !certRequired && (
-                      <button onClick={() => onCompleteCourse(prog.id, assignment.id)}
-                        className="text-xs px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Done</button>
-                    )}
-                    {courseStatus === 'in_progress' && certRequired && (
-                      <span className="text-xs text-amber-500 font-medium">Pending</span>
-                    )}
-                    {courseStatus === 'completed' && !hasModules && <CheckCircle className="w-4 h-4 text-emerald-500" />}
-                    {courseStatus === 'completed' && hasModules && (
-                      <button
-                        onClick={() => onOpenCourse(item.course_id, course.title, assignment.id, true)}
-                        className="flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition"
-                      >
-                        <BookOpen className="w-3 h-3" />
-                        View Again
-                      </button>
-                    )}
-                    {courseStatus === 'in_progress' && prog && !certRequired && hasModules && (
-                      <button
-                        onClick={() => onOpenCourse(item.course_id, course.title, assignment.id)}
-                        className="flex items-center gap-1 text-xs font-semibold text-white bg-blue-950 hover:bg-blue-900 px-2 py-1 rounded-lg transition"
-                      >
-                        <ArrowRight className="w-3 h-3" />
-                        Open
-                      </button>
-                    )}
-                    {!unlocked && <Lock className="w-3.5 h-3.5 text-gray-400" />}
-                  </div>
+              <li key={item.id} className={`flex items-center gap-3 pl-5 pr-3 sm:pl-[52px] sm:pr-4 py-2.5 border-t border-gray-50 first:border-t-0 ${current ? 'bg-yellow-50/60' : ''} ${st.status === 'locked' ? 'opacity-70' : ''}`}>
+                <div className="flex-shrink-0">{marker}</div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] leading-tight ${st.status === 'completed' ? 'text-gray-500' : current ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{course.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {[
+                      st.status === 'completed' && prog?.completed_at ? `Done · ${new Date(prog.completed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : null,
+                      current && st.hasModules ? `Module ${Math.min(st.doneCount + 1, mods.length)} of ${mods.length}` : null,
+                      !current && st.status !== 'completed' && course.duration_hours ? `${course.duration_hours} h` : null,
+                      course.delivery_type && course.delivery_type !== 'self_paced' ? DELIVERY_META[course.delivery_type]?.label : null,
+                      item.is_mandatory && st.status !== 'completed' ? 'Required' : null,
+                    ].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
-              </div>
+                {action && <div className="flex-shrink-0">{action}</div>}
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
-    </div>
+    </li>
+  );
+}
+
+// ─── Continue card ────────────────────────────────────────────────────────────
+
+interface ContinueTarget {
+  courseId: string;
+  courseTitle: string;
+  assignmentId: string;
+  context: string;
+  modules: CourseModule[];
+  doneCount: number;
+  pct: number;
+  started: boolean;
+}
+
+function ContinueCard({ target, onOpen, onStart }: { target: ContinueTarget; onOpen: () => void; onStart: () => void }) {
+  const remaining = target.modules.filter(m => !target.started || true).slice(target.doneCount).reduce((s, m) => s + (m.duration_minutes || 0), 0);
+  return (
+    <section aria-label={target.started ? 'Continue learning' : 'Start learning'} className="bg-stratefix-black text-white rounded-xl px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-semibold tracking-wider text-stratefix-yellow">{target.started ? 'CONTINUE WHERE YOU LEFT OFF' : 'START HERE'}</p>
+        <p className="text-base sm:text-lg font-semibold mt-1 leading-snug">{target.courseTitle}</p>
+        <p className="text-xs sm:text-[13px] text-gray-400 mt-1">
+          {target.context}
+          {target.modules.length > 0 ? ` · module ${Math.min(target.doneCount + 1, target.modules.length)} of ${target.modules.length}` : ''}
+          {remaining > 0 ? ` · about ${remaining} min left` : ''}
+        </p>
+        {target.started && target.modules.length > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <div className="w-full max-w-[220px] h-1 bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-stratefix-yellow" style={{ width: `${target.pct}%` }} /></div>
+            <span className="text-xs text-gray-400">{target.pct}%</span>
+          </div>
+        )}
+      </div>
+      <button
+        onClick={target.started ? onOpen : onStart}
+        className="h-11 sm:h-10 px-5 rounded-lg bg-stratefix-yellow text-stratefix-black text-sm font-semibold flex items-center justify-center gap-2 hover:bg-yellow-400 transition flex-shrink-0"
+      >
+        {target.started ? 'Resume' : 'Start'} <ArrowRight className="w-4 h-4" />
+      </button>
+    </section>
   );
 }
 
@@ -983,13 +965,14 @@ export default function MyLearning() {
   } | null>(null);
 
   const load = useCallback(async () => {
+    if (!userProfile) return;
     setLoading(true);
     setError('');
     try {
       const { data: emp } = await supabase
         .from('employees')
         .select('id')
-        .eq('user_id', userProfile!.id)
+        .eq('user_id', userProfile.id)
         .maybeSingle();
 
       if (!emp) { setLoading(false); return; }
@@ -1071,7 +1054,8 @@ export default function MyLearning() {
         });
         setCourseModulesMap(cm);
       }
-    } catch {
+    } catch (e) {
+      console.error('Could not load learning assignments', e);
       setError('Failed to load your learning assignments.');
     } finally {
       setLoading(false);
@@ -1212,6 +1196,14 @@ export default function MyLearning() {
     }
   };
 
+  // Start a course and, if it has modules, open the player immediately.
+  const handleStartAndOpen = async (assignmentId: string, courseId: string, courseTitle: string, modules: CourseModule[]) => {
+    await handleStart(assignmentId, courseId);
+    if (modules.length > 0) {
+      setActiveCoursePlayer({ courseId, courseTitle, assignmentId, modules, completedModuleIds: moduleProgressMap[courseId] || new Set<string>(), readOnly: false });
+    }
+  };
+
   const handleOpenCourse = (courseId: string, courseTitle: string, assignmentId: string, readOnly = false) => {
     const modules = courseModulesMap[courseId] || [];
     const completedIds = moduleProgressMap[courseId] || new Set<string>();
@@ -1312,131 +1304,181 @@ export default function MyLearning() {
     );
   }
 
+  // What to put in the "continue" card: the course the learner is in the middle
+  // of, otherwise the first course they can start.
+  const continueTarget: ContinueTarget | null = (() => {
+    const candidates: ContinueTarget[] = [];
+    for (const a of assignments) {
+      if (effectiveStatus(a) === 'completed') continue;
+      if (a.course_id && a.learning_courses) {
+        const mods = courseModulesMap[a.course_id] || [];
+        const done = moduleProgressMap[a.course_id] || new Set<string>();
+        const prog = progressMap[a.course_id];
+        const started = !!prog || done.size > 0;
+        if (needsLDCert(a.learning_courses) && started) continue;
+        candidates.push({
+          courseId: a.course_id, courseTitle: a.learning_courses.title, assignmentId: a.id,
+          context: a.learning_courses.is_assessment ? 'Assessment' : 'Course',
+          modules: mods, doneCount: mods.filter(m => done.has(m.id)).length,
+          pct: mods.length ? Math.round((mods.filter(m => done.has(m.id)).length / mods.length) * 100) : (prog?.progress_percentage || 0),
+          started,
+        });
+      } else if (a.learning_path_id && a.learning_paths) {
+        const items = pathItemsMap[a.learning_path_id] || [];
+        for (const it of items) {
+          const c = it.learning_courses; if (!c) continue;
+          const prog = progressMap[it.course_id];
+          if (prog?.status === 'completed' || certifiedCourseIds.has(it.course_id)) continue;
+          if (it.prerequisite_item_id) {
+            const pre = items.find(p => p.id === it.prerequisite_item_id);
+            if (pre && !(progressMap[pre.course_id]?.status === 'completed' || certifiedCourseIds.has(pre.course_id))) continue;
+          }
+          const mods = courseModulesMap[it.course_id] || [];
+          const done = moduleProgressMap[it.course_id] || new Set<string>();
+          const started = !!prog || done.size > 0;
+          if (needsLDCert(c) && started) continue;
+          candidates.push({
+            courseId: it.course_id, courseTitle: c.title, assignmentId: a.id, context: a.learning_paths.title,
+            modules: mods, doneCount: mods.filter(m => done.has(m.id)).length,
+            pct: mods.length ? Math.round((mods.filter(m => done.has(m.id)).length / mods.length) * 100) : (prog?.progress_percentage || 0),
+            started,
+          });
+          break; // one per path: the next course in order
+        }
+      }
+    }
+    return candidates.find(c => c.started) || candidates[0] || null;
+  })();
+
+  const soon = new Date(); soon.setDate(soon.getDate() + 7);
+  const dueSoon = assignments
+    .filter(a => a.due_date && effectiveStatus(a) !== 'completed' && new Date(a.due_date) <= soon)
+    .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+    .slice(0, 2);
+
+  const counts = {
+    all: assignments.length,
+    in_progress: inProgressCount,
+    assigned: assignments.filter(a => effectiveStatus(a) === 'assigned').length,
+    completed: completedCount,
+  };
+
+  const visiblePaths = filtered(pathAssignments);
+  const visibleCourses = filtered(courseAssignments);
+
   return (
     <>
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Learning</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Your onboarding, courses, assessments and learning paths</p>
-      </div>
-
+    <div className="px-4 py-4 lg:px-6 lg:py-5 max-w-4xl mx-auto space-y-4">
       {error && (
-        <div className="flex items-center gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
-          <button onClick={() => setError('')} className="ml-auto"><XCircle className="w-4 h-4" /></button>
+          <button onClick={() => setError('')} className="ml-auto" aria-label="Dismiss"><XCircle className="w-4 h-4" /></button>
         </div>
+      )}
+
+      {continueTarget && (
+        <ContinueCard
+          target={continueTarget}
+          onOpen={() => handleOpenCourse(continueTarget.courseId, continueTarget.courseTitle, continueTarget.assignmentId)}
+          onStart={() => handleStartAndOpen(continueTarget.assignmentId, continueTarget.courseId, continueTarget.courseTitle, continueTarget.modules)}
+        />
+      )}
+
+      {dueSoon.length > 0 && (
+        <section aria-label="Due soon" className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 sm:px-4 space-y-1">
+          {dueSoon.map(a => {
+            const due = new Date(a.due_date!);
+            const overdue = due < new Date();
+            const days = Math.ceil((due.getTime() - Date.now()) / 86400000);
+            const title = a.learning_courses?.title || a.learning_paths?.title || 'Assignment';
+            return (
+              <div key={a.id} className="flex items-center gap-2 text-[13px] text-orange-900">
+                <Clock className="w-4 h-4 flex-shrink-0 text-orange-700" />
+                <span className="min-w-0 truncate"><strong className="font-semibold">{overdue ? 'Overdue' : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`}:</strong> {title}</span>
+              </div>
+            );
+          })}
+        </section>
       )}
 
       {employeeId && <InductionSection employeeId={employeeId} completedPathIds={completedPathIds} />}
 
+      {assignments.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <BookOpen className="w-6 h-6 text-gray-400" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Nothing assigned yet</h3>
+          <p className="text-xs text-gray-500 max-w-xs">Courses and learning paths will appear here when they are assigned to you.</p>
+        </div>
+      )}
+
       {assignments.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-            {[
-              { icon: BarChart2, label: 'In Progress', value: inProgressCount, color: 'text-blue-700 bg-blue-50' },
-              { icon: CheckCircle, label: 'Completed', value: completedCount, color: 'text-emerald-700 bg-emerald-50' },
-              { icon: Clock, label: 'Total Hours', value: `${totalHours}h`, color: 'text-gray-700 bg-gray-50' },
-            ].map(s => (
-              <div key={s.label} className={`flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 p-3 sm:p-4 rounded-xl border border-gray-200 ${s.color}`}>
-                <s.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <div>
-                  <p className="text-lg sm:text-xl font-bold leading-tight">{s.value}</p>
-                  <p className="text-[10px] sm:text-xs font-medium opacity-70 leading-tight">{s.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-5 overflow-x-auto max-w-full">
-            {(['all', 'in_progress', 'assigned', 'completed'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === f ? 'bg-white text-blue-950 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                {f === 'all' ? 'All' : f.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+          <div className="flex items-center gap-1.5 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 [scrollbar-width:none]" role="tablist" aria-label="Filter">
+            {([['all', 'All'], ['in_progress', 'In progress'], ['assigned', 'Not started'], ['completed', 'Completed']] as const).map(([f, label]) => (
+              <button
+                key={f}
+                role="tab"
+                aria-selected={filter === f}
+                onClick={() => setFilter(f)}
+                className={`h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap transition ${filter === f ? 'bg-stratefix-black text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                {label} · {counts[f]}
               </button>
             ))}
+            <span className="hidden sm:inline ml-auto text-xs text-gray-500 whitespace-nowrap">{totalHours} h assigned</span>
           </div>
-        </>
-      )}
 
-      {assignments.length === 0 && !employeeId && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <BookOpen className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">No learning assignments yet</h3>
-          <p className="text-sm text-gray-500 max-w-xs">Your learning journey will appear here once assigned.</p>
-        </div>
-      )}
-
-      {assignments.length === 0 && employeeId && (
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <Target className="w-7 h-7 text-gray-400" />
-          </div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-1">No additional courses assigned</h3>
-          <p className="text-xs text-gray-400 max-w-xs">Further learning programs will appear here as they are assigned to you.</p>
-        </div>
-      )}
-
-      {assignments.length > 0 && (
-        <div className="space-y-6">
-          {filtered(pathAssignments).length > 0 && (
-            <div>
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <Layers className="w-4 h-4" /> Learning Paths
-              </h2>
-              <div className="space-y-3">
-                {filtered(pathAssignments).map(a => (
-                  <LearningPathCard
+          {visiblePaths.length > 0 && (
+            <section aria-label="Learning paths">
+              <ul className="space-y-3">
+                {visiblePaths.map(a => (
+                  <PathRow
                     key={a.id}
                     assignment={a}
                     pathItems={a.learning_path_id ? (pathItemsMap[a.learning_path_id] || []) : []}
                     progress={progressMap}
                     certifiedCourseIds={certifiedCourseIds}
                     completedPathIds={completedPathIds}
-                    onStartCourse={handleStart}
-                    onCompleteCourse={handleComplete}
-                    saving={saving}
                     courseModulesMap={courseModulesMap}
+                    moduleProgressMap={moduleProgressMap}
+                    onStartCourse={handleStartAndOpen}
+                    onCompleteCourse={handleComplete}
                     onOpenCourse={handleOpenCourse}
+                    saving={saving}
                   />
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
 
-          {filtered(courseAssignments).length > 0 && (
-            <div>
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <BookOpen className="w-4 h-4" /> Individual Courses & Assessments
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered(courseAssignments).map(a => (
-                  <CourseCard
+          {visibleCourses.length > 0 && (
+            <section aria-label="Courses and assessments" className="bg-white border border-gray-200 rounded-lg">
+              <ul className="divide-y divide-gray-100">
+                {visibleCourses.map(a => (
+                  <CourseRow
                     key={a.id}
                     assignment={a}
                     progress={a.course_id ? progressMap[a.course_id] : undefined}
                     isCertified={certifiedAssignmentIds.has(a.id)}
                     modules={a.course_id ? (courseModulesMap[a.course_id] || []) : []}
                     completedModuleIds={a.course_id ? (moduleProgressMap[a.course_id] || new Set()) : new Set()}
-                    onStart={handleStart}
+                    onStart={handleStartAndOpen}
                     onComplete={handleComplete}
                     onTakeQuiz={handleTakeQuiz}
-                    onModuleComplete={handleModuleComplete}
                     onOpenCourse={handleOpenCourse}
-                    onModuleQuiz={handleModuleQuiz}
                     saving={saving}
-                    savingModuleId={savingModuleId}
                   />
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
 
-          {filtered(courseAssignments).length === 0 && filtered(pathAssignments).length === 0 && (
-            <div className="text-center py-10 text-sm text-gray-500">No assignments match the selected filter.</div>
+          {visibleCourses.length === 0 && visiblePaths.length === 0 && (
+            <div className="text-center py-10 text-sm text-gray-500">Nothing matches this filter.</div>
           )}
-        </div>
+        </>
       )}
 
       {activeQuizAssignment && activeQuizAssignment.course_id && employeeId && (
