@@ -23,3 +23,6 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
 }
+
+/** Minimum percentage to pass a course or module quiz. One value for every quiz runner. */
+export const QUIZ_PASS_MARK = 70;

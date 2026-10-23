@@ -4,7 +4,7 @@ import {
   RefreshCw, CheckCircle2, Circle, AlertCircle, Layers, Calendar, XCircle, Lock,
   Users, Briefcase, Monitor, HelpCircle, ClipboardList, ChevronRight, ChevronLeft
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, QUIZ_PASS_MARK } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import CoursePlayerPage from './mylearning/CoursePlayerPage';
 
@@ -263,7 +263,7 @@ function QuizModal({ courseId, courseTitle, assignmentId, employeeId, moduleId, 
   );
 
   if (result) {
-    const passed = result.percentage >= 60;
+    const passed = result.percentage >= QUIZ_PASS_MARK;
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 text-center">

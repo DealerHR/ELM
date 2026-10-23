@@ -1,104 +1,41 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Building2, Loader2, CheckCircle, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, CheckCircle, ChevronRight } from 'lucide-react';
 import GrowthProfileTest from './GrowthProfileTest';
 import DomainTest from './DomainTest';
-
-interface Invitation {
-  id: string;
-  candidate_id: string;
-  candidate_name: string | null;
-  organization_name: string | null;
-  access_code: string;
-  status: string;
-  include_growth_profile: boolean;
-  include_domain_assessment: boolean;
-  growth_profile_level: string | null;
-  growth_assessment_id: string | null;
-  domain_assessment_id: string | null;
-  expires_at: string;
-}
+import { portalApi, PortalInvitation } from '../../lib/portalApi';
 
 interface AssessmentRunnerProps {
-  invitation: Invitation;
+  invitation: PortalInvitation;
   onComplete: () => void;
 }
 
 type ActiveTest = 'overview' | 'growth' | 'domain';
 
-export default function AssessmentRunner({ invitation, onComplete }: AssessmentRunnerProps) {
+export default function AssessmentRunner({ invitation: initialInvitation, onComplete }: AssessmentRunnerProps) {
+  const [invitation, setInvitation] = useState<PortalInvitation>(initialInvitation);
   const [activeTest, setActiveTest] = useState<ActiveTest>('overview');
-  const [growthDone, setGrowthDone] = useState(false);
-  const [domainDone, setDomainDone] = useState(false);
-  const [checkingProgress, setCheckingProgress] = useState(true);
 
-  useEffect(() => {
-    checkExistingProgress();
-  }, []);
+  const growthDone = invitation.growth_status === 'completed';
+  const domainDone = invitation.domain_status === 'completed';
 
-  async function checkExistingProgress() {
-    let gDone = false;
-    let dDone = false;
-
-    if (invitation.include_growth_profile && invitation.growth_assessment_id) {
-      const { data } = await supabase
-        .from('candidate_growth_assessments')
-        .select('status')
-        .eq('id', invitation.growth_assessment_id)
-        .maybeSingle();
-      if (data?.status === 'completed') gDone = true;
-    }
-
-    if (invitation.include_domain_assessment && invitation.domain_assessment_id) {
-      const { data } = await supabase
-        .from('candidate_domain_attempts')
-        .select('status')
-        .eq('invitation_token', invitation.id)
-        .maybeSingle();
-      if (data?.status === 'completed') dDone = true;
-    }
-
-    setGrowthDone(gDone);
-    setDomainDone(dDone);
-    setCheckingProgress(false);
-  }
-
-  async function handleGrowthComplete() {
-    setGrowthDone(true);
+  // After each test the database decides whether everything is done;
+  // we just re-read the invitation.
+  async function refresh() {
     setActiveTest('overview');
-    await checkAllDone(true, domainDone);
-  }
-
-  async function handleDomainComplete() {
-    setDomainDone(true);
-    setActiveTest('overview');
-    await checkAllDone(growthDone, true);
-  }
-
-  async function checkAllDone(gDone: boolean, dDone: boolean) {
-    const needGrowth = invitation.include_growth_profile;
-    const needDomain = invitation.include_domain_assessment;
-    const allDone = (!needGrowth || gDone) && (!needDomain || dDone);
-    if (allDone) {
-      await supabase.from('assessment_invitations').update({ status: 'completed' }).eq('id', invitation.id);
-      await supabase.from('candidates').update({ status: 'assessment_completed' }).eq('id', invitation.candidate_id);
-      onComplete();
+    try {
+      const fresh = await portalApi.getInvitation(invitation.access_code);
+      setInvitation(fresh);
+      if (fresh.status === 'completed') onComplete();
+    } catch {
+      // Keep the current view; the candidate can re-enter the code if needed.
     }
-  }
-
-  if (checkingProgress) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-950" />
-      </div>
-    );
   }
 
   if (activeTest === 'growth') {
     return (
       <GrowthProfileTest
         invitation={invitation}
-        onComplete={handleGrowthComplete}
+        onComplete={refresh}
         onBack={() => setActiveTest('overview')}
       />
     );
@@ -108,7 +45,7 @@ export default function AssessmentRunner({ invitation, onComplete }: AssessmentR
     return (
       <DomainTest
         invitation={invitation}
-        onComplete={handleDomainComplete}
+        onComplete={refresh}
         onBack={() => setActiveTest('overview')}
       />
     );

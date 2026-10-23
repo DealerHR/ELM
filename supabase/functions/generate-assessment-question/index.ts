@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { adminClient, requireRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,10 +65,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = adminClient();
+
+    // Only staff who build assessments may spend the platform's OpenAI quota.
+    const auth = await requireRole(req, supabase, ["platform_admin", "admin", "hr"]);
+    if ("response" in auth) return auth.response;
 
     const { job_description, difficulty, existing_questions } = await req.json();
 

@@ -1,73 +1,27 @@
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { KeyRound, Loader2, AlertCircle, ChevronRight, Building2 } from 'lucide-react';
 import AssessmentRunner from './AssessmentRunner';
-
-interface InvitationData {
-  id: string;
-  candidate_id: string;
-  candidate_name: string | null;
-  organization_name: string | null;
-  organization_id: string | null;
-  access_code: string;
-  status: string;
-  include_growth_profile: boolean;
-  include_domain_assessment: boolean;
-  growth_profile_level: string | null;
-  growth_assessment_id: string | null;
-  domain_assessment_id: string | null;
-  expires_at: string;
-}
+import { portalApi, PortalInvitation, PortalError } from '../../lib/portalApi';
 
 export default function CandidatePortal() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [invitation, setInvitation] = useState<PortalInvitation | null>(null);
 
   async function handleEnterCode() {
     const trimmed = code.trim().toUpperCase();
     if (trimmed.length !== 6) { setError('Please enter your 6-character access code.'); return; }
     setLoading(true); setError('');
 
-    const { data, error: err } = await supabase
-      .from('assessment_invitations')
-      .select('id, candidate_id, candidate_name, organization_name, organization_id, access_code, status, include_growth_profile, include_domain_assessment, growth_profile_level, growth_assessment_id, domain_assessment_id, expires_at')
-      .eq('access_code', trimmed)
-      .maybeSingle();
-
-    setLoading(false);
-
-    if (err || !data) {
-      setError('Access code not found. Please check your code and try again.');
-      return;
+    try {
+      const data = await portalApi.getInvitation(trimmed);
+      setInvitation(data);
+    } catch (err) {
+      setError(err instanceof PortalError ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    if (!data.organization_name && data.organization_id) {
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', data.organization_id)
-        .maybeSingle();
-      if (orgData?.name) data.organization_name = orgData.name;
-    }
-
-    if (new Date(data.expires_at) < new Date()) {
-      setError('This access code has expired. Please contact the organisation for a new invitation.');
-      return;
-    }
-
-    if (data.status === 'completed') {
-      setInvitation({ ...data, status: 'completed' });
-      return;
-    }
-
-    if (data.status === 'sent') {
-      await supabase.from('assessment_invitations').update({ status: 'opened' }).eq('id', data.id);
-      data.status = 'opened';
-    }
-
-    setInvitation(data);
   }
 
   if (invitation?.status === 'completed') {

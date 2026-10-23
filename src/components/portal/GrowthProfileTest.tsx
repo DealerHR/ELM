@@ -1,39 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
 import { Loader2, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Languages } from 'lucide-react';
-
-interface Question {
-  id: string;
-  question_number: number;
-  dimension: string;
-  question_text: string;
-  question_text_simple: string | null;
-  question_text_hi: string | null;
-  question_type: string;
-  answer_scale: string;
-  question_format: string;
-  option_1: string | null;
-  option_2: string | null;
-  option_3: string | null;
-  option_4: string | null;
-  option_5: string | null;
-  option_1_simple: string | null;
-  option_2_simple: string | null;
-  option_3_simple: string | null;
-  option_4_simple: string | null;
-  option_5_simple: string | null;
-  option_1_hi: string | null;
-  option_2_hi: string | null;
-  option_3_hi: string | null;
-  option_4_hi: string | null;
-  option_5_hi: string | null;
-  is_reverse_scored: boolean;
-  is_social_desirability_trap: boolean;
-}
+import { portalApi, PortalError, GrowthQuestion as Question } from '../../lib/portalApi';
 
 interface Invitation {
   id: string;
-  growth_assessment_id: string | null;
   candidate_name: string | null;
   organization_name: string | null;
   access_code: string;
@@ -66,6 +36,10 @@ function getOptions(q: Question, showHindi: boolean): (string | null)[] {
   ];
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof PortalError ? err.message : 'Something went wrong. Please try again.';
+}
+
 export default function GrowthProfileTest({ invitation, onComplete, onBack }: GrowthProfileTestProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -80,38 +54,27 @@ export default function GrowthProfileTest({ invitation, onComplete, onBack }: Gr
 
   async function loadQuestions() {
     setLoading(true);
-    const { data, error: err } = await supabase
-      .from('growth_profile_questions')
-      .select(`
-        id, question_number, dimension, question_text, question_text_simple, question_text_hi,
-        question_type, answer_scale, question_format,
-        option_1, option_2, option_3, option_4, option_5,
-        option_1_simple, option_2_simple, option_3_simple, option_4_simple, option_5_simple,
-        option_1_hi, option_2_hi, option_3_hi, option_4_hi, option_5_hi,
-        is_reverse_scored, is_social_desirability_trap
-      `)
-      .order('question_number', { ascending: true });
+    try {
+      const [data, existing] = await Promise.all([
+        portalApi.getGrowthQuestions(invitation.access_code),
+        portalApi.getGrowthResponses(invitation.access_code),
+      ]);
+      setQuestions(data);
 
-    if (err || !data) { setError('Failed to load questions.'); setLoading(false); return; }
-    setQuestions(data);
-
-    if (invitation.growth_assessment_id) {
-      const { data: existing } = await supabase
-        .from('candidate_growth_responses')
-        .select('question_id, answer_value')
-        .eq('assessment_id', invitation.growth_assessment_id);
-      if (existing && existing.length > 0) {
+      if (existing.length > 0) {
         const preloaded: Record<string, number> = {};
         existing.forEach(r => { preloaded[r.question_id] = r.answer_value; });
         setAnswers(preloaded);
-        const lastAnsweredIndex = data.findIndex(q => !preloaded[q.id]);
-        if (lastAnsweredIndex > 0) {
-          setPage(Math.floor(lastAnsweredIndex / QUESTIONS_PER_PAGE));
+        const firstUnanswered = data.findIndex(q => !preloaded[q.id]);
+        if (firstUnanswered > 0) {
+          setPage(Math.floor(firstUnanswered / QUESTIONS_PER_PAGE));
         }
       }
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   function setAnswer(questionId: string, value: number) {
@@ -128,37 +91,29 @@ export default function GrowthProfileTest({ invitation, onComplete, onBack }: Gr
   const totalAnswered = Object.keys(answers).length;
   const allAnswered = totalAnswered >= questions.length;
 
-  async function savePageResponses(qs: Question[]) {
-    if (!invitation.growth_assessment_id) return;
-    for (const q of qs) {
-      const val = answers[q.id];
-      if (val === undefined) continue;
-      const { data: existing } = await supabase
-        .from('candidate_growth_responses')
-        .select('id')
-        .eq('assessment_id', invitation.growth_assessment_id)
-        .eq('question_id', q.id)
-        .maybeSingle();
-      if (!existing) {
-        await supabase.from('candidate_growth_responses').insert({
-          assessment_id: invitation.growth_assessment_id,
-          question_id: q.id,
-          answer_value: val,
-        });
-      }
-    }
+  // Saves every answered question in the batch; changed answers are updated.
+  async function saveResponses(qs: Question[]) {
+    const rows = qs
+      .filter(q => answers[q.id] !== undefined)
+      .map(q => ({ question_id: q.id, answer_value: answers[q.id] }));
+    if (rows.length === 0) return;
+    await portalApi.saveGrowthResponses(invitation.access_code, rows);
   }
 
   async function handleNext() {
     if (!pageAnswered) { setError('Please answer all questions on this page before continuing.'); return; }
     setError('');
     setSaving(true);
-    await savePageResponses(pageQuestions);
-    await supabase.from('assessment_invitations').update({ status: 'in_progress' }).eq('id', invitation.id);
-    setSaving(false);
-    if (page < totalPages - 1) {
-      setPage(p => p + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      await saveResponses(pageQuestions);
+      if (page < totalPages - 1) {
+        setPage(p => p + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -166,33 +121,18 @@ export default function GrowthProfileTest({ invitation, onComplete, onBack }: Gr
     if (!allAnswered) { setError('Please answer all questions before submitting.'); return; }
     setSubmitting(true); setError('');
 
-    if (invitation.growth_assessment_id) {
-      await savePageResponses(questions);
-      await supabase.from('candidate_growth_assessments')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', invitation.growth_assessment_id);
-      await supabase.from('assessment_invitations')
-        .update({ growth_completed_at: new Date().toISOString() })
-        .eq('id', invitation.id);
-
-      try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        await fetch(`${supabaseUrl}/functions/v1/compute-growth-profile-scores`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Apikey': supabaseAnonKey,
-          },
-          body: JSON.stringify({ assessment_id: invitation.growth_assessment_id }),
-        });
-      } catch (_) {
-      }
+    try {
+      await saveResponses(questions);
+      const { assessment_id } = await portalApi.completeGrowth(invitation.access_code);
+      // Scoring runs on the server. If it fails the recruiter can re-run it;
+      // the candidate's answers are already saved, so we do not block them.
+      await portalApi.scoreGrowth(invitation.access_code, assessment_id);
+      onComplete();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
-    onComplete();
   }
 
   if (loading) {

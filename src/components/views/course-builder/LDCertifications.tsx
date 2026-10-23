@@ -55,8 +55,7 @@ export default function LDCertifications({ organizationId }: LDCertificationsPro
           learning_courses!inner(id, title, delivery_type),
           ld_certifications(id, certified_at, notes, session_date)
         `)
-        .eq('learning_courses.delivery_type', 'classroom')
-        .or('learning_courses.delivery_type.eq.on_job')
+        .in('learning_courses.delivery_type', ['classroom', 'on_job'])
         .not('course_id', 'is', null)
         .order('assigned_date', { ascending: false });
 

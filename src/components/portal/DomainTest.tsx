@@ -1,16 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
 import { Loader2, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
-
-interface Question {
-  id: string;
-  question_number: number;
-  question_text: string;
-  question_type: string;
-  options: string[] | null;
-  correct_answer: string | null;
-  points: number;
-}
+import { portalApi, PortalError, DomainQuestion as Question } from '../../lib/portalApi';
 
 interface DomainAssessmentMeta {
   id: string;
@@ -20,8 +10,6 @@ interface DomainAssessmentMeta {
 
 interface Invitation {
   id: string;
-  candidate_id: string;
-  domain_assessment_id: string | null;
   candidate_name: string | null;
   organization_name: string | null;
   access_code: string;
@@ -33,16 +21,14 @@ interface DomainTestProps {
   onBack: () => void;
 }
 
-interface SavedAnswer {
-  question_id: string;
-  selected_answer: string;
+function errorMessage(err: unknown): string {
+  return err instanceof PortalError ? err.message : 'Something went wrong. Please try again.';
 }
 
 export default function DomainTest({ invitation, onComplete, onBack }: DomainTestProps) {
   const [meta, setMeta] = useState<DomainAssessmentMeta | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [attemptId, setAttemptId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -52,43 +38,18 @@ export default function DomainTest({ invitation, onComplete, onBack }: DomainTes
   }, []);
 
   async function loadAssessment() {
-    if (!invitation.domain_assessment_id) { setError('No domain assessment linked.'); setLoading(false); return; }
-
-    const [metaRes, questionsRes] = await Promise.all([
-      supabase.from('candidate_domain_assessments').select('id, title, description').eq('id', invitation.domain_assessment_id).maybeSingle(),
-      supabase.from('domain_assessment_questions').select('id, question_number, question_text, question_type, options, correct_answer, points').eq('assessment_id', invitation.domain_assessment_id).order('question_number', { ascending: true }),
-    ]);
-
-    if (metaRes.error || !metaRes.data) { setError('Failed to load assessment.'); setLoading(false); return; }
-    if (questionsRes.error) { setError('Failed to load questions.'); setLoading(false); return; }
-
-    setMeta(metaRes.data);
-    const qs: Question[] = (questionsRes.data || []).map(q => ({
-      ...q,
-      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : null,
-    }));
-    setQuestions(qs);
-
-    const { data: existingAttempt } = await supabase
-      .from('candidate_domain_attempts')
-      .select('id, status')
-      .eq('invitation_token', invitation.id)
-      .maybeSingle();
-
-    if (existingAttempt) {
-      setAttemptId(existingAttempt.id);
-    } else {
-      const { data: newAttempt } = await supabase.from('candidate_domain_attempts').insert({
-        candidate_id: invitation.candidate_id,
-        assessment_id: invitation.domain_assessment_id,
-        invitation_token: invitation.id,
-        status: 'in_progress',
-        started_at: new Date().toISOString(),
-      }).select('id').maybeSingle();
-      if (newAttempt) setAttemptId(newAttempt.id);
+    try {
+      const payload = await portalApi.getDomainTest(invitation.access_code);
+      setMeta(payload.assessment);
+      setQuestions(payload.questions.map(q => ({
+        ...q,
+        options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : null,
+      })));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   function setAnswer(questionId: string, value: string) {
@@ -96,7 +57,7 @@ export default function DomainTest({ invitation, onComplete, onBack }: DomainTes
   }
 
   async function handleSubmit() {
-    if (!meta || !attemptId) return;
+    if (!meta) return;
     const unanswered = questions.filter(q => !answers[q.id]);
     if (unanswered.length > 0) {
       setError(`Please answer all questions. ${unanswered.length} question${unanswered.length > 1 ? 's' : ''} remaining.`);
@@ -104,51 +65,15 @@ export default function DomainTest({ invitation, onComplete, onBack }: DomainTes
     }
     setSubmitting(true); setError('');
 
-    let score = 0;
-    let maxScore = 0;
-    for (const q of questions) {
-      maxScore += q.points || 1;
-      if (q.correct_answer && answers[q.id] === q.correct_answer) {
-        score += q.points || 1;
-      }
+    try {
+      // Scoring happens in the database; the answer key never reaches the browser.
+      await portalApi.submitDomain(invitation.access_code, answers);
+      onComplete();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSubmitting(false);
     }
-    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
-
-    const responseRows = questions.map(q => {
-      const answered = answers[q.id] ?? '';
-      const isCorrect = q.correct_answer ? answered === q.correct_answer : null;
-      const pointsAwarded = q.correct_answer
-        ? (answered === q.correct_answer ? (q.points || 1) : 0)
-        : null;
-      return {
-        attempt_id: attemptId,
-        question_id: q.id,
-        answer_text: answered,
-        is_correct: isCorrect,
-        points_awarded: pointsAwarded,
-        responded_at: new Date().toISOString(),
-      };
-    });
-
-    await Promise.all([
-      supabase.from('candidate_domain_attempts').update({
-        status: 'completed',
-        score,
-        max_score: maxScore,
-        percentage,
-        completed_at: new Date().toISOString(),
-      }).eq('id', attemptId),
-      supabase.from('candidate_domain_responses').insert(responseRows),
-      supabase.from('assessment_invitations').update({
-        domain_score: percentage,
-        domain_attempt_id: attemptId,
-        domain_completed_at: new Date().toISOString(),
-        status: 'in_progress',
-      }).eq('id', invitation.id),
-    ]);
-
-    setSubmitting(false);
-    onComplete();
   }
 
   if (loading) {

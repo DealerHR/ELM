@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { callEdgeFunction, generateTemporaryPassword } from '../../lib/edgeFunctions';
 import {
   UserPlus, Search, Clock, CheckCircle,
   XCircle, Mail, Phone, Briefcase, Calendar, Star,
@@ -270,6 +271,7 @@ export default function Candidates() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [showAllAssessments, setShowAllAssessments] = useState(false);
   const [designations, setDesignations] = useState<Designation[]>([]);
+  const [inductionPassword, setInductionPassword] = useState('');
   const [inductionForm, setInductionForm] = useState({
     employee_code: '',
     department_id: '',
@@ -569,66 +571,35 @@ ${orgName} Recruitment Team`;
     setSaving(true);
     setError('');
 
-    let userId: string;
-
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: selectedCandidate.email,
-      password: 'ChangeMe123!',
-      options: { data: { full_name: selectedCandidate.full_name } },
-    });
-
-    const isExistingUser =
-      !authError && authData.user && authData.user.identities?.length === 0;
-
-    if (authError || !authData.user || isExistingUser) {
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', selectedCandidate.email)
-        .maybeSingle();
-
-      if (!existingProfile?.id) {
-        setError(authError?.message || 'Failed to create or locate user account.');
+    // Account creation runs in an edge function so HR's own session is never
+    // replaced and the password is a one-off value shown once.
+    const temporaryPassword = generateTemporaryPassword();
+    try {
+      const result = await callEdgeFunction<{ success: boolean; error?: string }>('create-org-employee', {
+        organization_id: userProfile.organization_id,
+        full_name: selectedCandidate.full_name,
+        email: selectedCandidate.email,
+        password: temporaryPassword,
+        phone: selectedCandidate.phone || null,
+        role: 'employee',
+        employee_code: inductionForm.employee_code.trim(),
+        department_id: inductionForm.department_id || null,
+        designation_id: inductionForm.designation_id || null,
+        date_of_joining: inductionForm.date_of_joining,
+        employment_type: inductionForm.employment_type,
+        employment_status: 'active',
+      });
+      if (!result.success) {
+        setError(result.error || 'Failed to create the employee account.');
         setSaving(false);
         return;
       }
-      userId = existingProfile.id;
-    } else {
-      userId = authData.user.id;
-    }
-
-    const { error: profileError } = await supabase.from('user_profiles').upsert({
-      id: userId,
-      organization_id: userProfile.organization_id,
-      email: selectedCandidate.email,
-      full_name: selectedCandidate.full_name,
-      phone: selectedCandidate.phone || null,
-      role: 'employee',
-      is_active: true,
-    }, { onConflict: 'id' });
-
-    if (profileError) {
-      setError(profileError.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create the employee account.');
       setSaving(false);
       return;
     }
-
-    const { error: empError } = await supabase.from('employees').upsert([{
-      user_id: userId,
-      organization_id: userProfile.organization_id,
-      employee_code: inductionForm.employee_code.trim(),
-      department_id: inductionForm.department_id || null,
-      designation_id: inductionForm.designation_id || null,
-      date_of_joining: inductionForm.date_of_joining,
-      employment_type: inductionForm.employment_type,
-      status: 'active',
-    }], { onConflict: 'user_id' });
-
-    if (empError) {
-      setError(empError.message);
-      setSaving(false);
-      return;
-    }
+    setInductionPassword(temporaryPassword);
 
     const { error: candidateError } = await supabase
       .from('candidates')
@@ -1483,9 +1454,9 @@ ${orgName} Recruitment Team`;
               </p>
               <div className="mt-1 space-y-1 text-sm font-mono bg-white border border-amber-200 rounded-lg p-3">
                 <p><span className="text-slate-500">Email:</span> <span className="font-semibold text-slate-800">{selectedCandidate.email}</span></p>
-                <p><span className="text-slate-500">Password:</span> <span className="font-semibold text-slate-800">ChangeMe123!</span></p>
+                <p><span className="text-slate-500">Temporary password:</span> <span className="font-semibold text-slate-800 font-mono">{inductionPassword}</span></p>
               </div>
-              <p className="text-xs text-amber-600 mt-1">The employee should change their password after first login.</p>
+              <p className="text-xs text-amber-600 mt-1">The password is shown once only. The employee should change it after first login.</p>
             </div>
             <div className="flex justify-end">
               <button
