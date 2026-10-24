@@ -24,11 +24,22 @@ const in3 = new Date(Date.now() + 3 * 86400000).toISOString();
 const in20 = new Date(Date.now() + 20 * 86400000).toISOString();
 
 const FIXTURES: Record<string, any[]> = {
-  user_profiles: [{ id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE, is_active: true, created_at: '', updated_at: '' }],
-  employees: [{ id: EMP, user_id: 'user-1', organization_id: ORG, employee_code: 'E1', designation_id: 'd1' }],
+  user_profiles: [
+    { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE, is_active: true, created_at: '', updated_at: '' },
+    { id: 'user-2', organization_id: ORG, email: 'a@example.com', full_name: 'Anita Rao', role: 'employee', is_active: true, created_at: '', updated_at: '' },
+    { id: 'user-3', organization_id: ORG, email: 'r@example.com', full_name: 'Rahul Mehta', role: 'employee', is_active: true, created_at: '', updated_at: '' },
+  ],
+  employees: [
+    { id: EMP, user_id: 'user-1', organization_id: ORG, employee_code: 'E1', designation_id: 'd1', status: 'active' },
+    { id: 'emp-2', user_id: 'user-2', organization_id: ORG, employee_code: 'E2', status: 'active', reporting_manager_id: EMP, departments: { name: 'Sales' }, designations: { title: 'Sales Executive' } },
+    { id: 'emp-3', user_id: 'user-3', organization_id: ORG, employee_code: 'E3', status: 'active', reporting_manager_id: EMP, departments: { name: 'Sales' }, designations: { title: 'Team Lead' } },
+  ],
   employee_learning_assignments: [
     { id: 'a1', employee_id: EMP, course_id: null, learning_path_id: 'p1', status: 'in_progress', due_date: in20, assigned_date: '2026-10-10', learning_courses: null, learning_paths: { id: 'p1', title: 'Professional Listening', description: null } },
     { id: 'a2', employee_id: EMP, course_id: 'c7', learning_path_id: null, status: 'assigned', due_date: null, assigned_date: '2026-10-12', learning_courses: COURSES.c7, learning_paths: null },
+    { id: 'a4', employee_id: 'emp-2', course_id: 'c1', learning_path_id: null, status: 'completed', due_date: '2026-10-01', assigned_date: '2026-09-12', learning_courses: COURSES.c1, learning_paths: null },
+    { id: 'a5', employee_id: 'emp-2', course_id: 'c7', learning_path_id: null, status: 'assigned', due_date: '2026-10-01', assigned_date: '2026-09-12', learning_courses: COURSES.c7, learning_paths: null },
+    { id: 'a6', employee_id: 'emp-3', course_id: 'c6', learning_path_id: null, status: 'in_progress', due_date: in20, assigned_date: '2026-10-12', learning_courses: COURSES.c6, learning_paths: null },
     { id: 'a3', employee_id: EMP, course_id: 'c6', learning_path_id: null, status: 'assigned', due_date: in3, assigned_date: '2026-10-12', learning_courses: COURSES.c6, learning_paths: null },
   ],
   learning_path_items: ['c1', 'c2', 'c3', 'c4', 'c5'].map((cid, i) => ({ id: `pi${i + 1}`, path_id: 'p1', course_id: cid, order_index: i + 1, is_mandatory: true, prerequisite_item_id: i === 0 ? null : `pi${i}`, prerequisite_path_id: null, learning_courses: COURSES[cid], learning_paths: { title: 'Professional Listening' } })),
@@ -40,6 +51,10 @@ const FIXTURES: Record<string, any[]> = {
     { id: 'pr4', assignment_id: 'a1', employee_id: EMP, course_id: 'c3', module_id: 'm31', status: 'completed', progress_percentage: 100, completed_at: '2026-10-23', started_at: '2026-10-23' },
   ],
   ld_certifications: [],
+  learning_paths: [{ id: 'p1', title: 'Professional Listening', organization_id: ORG }],
+  departments: [{ id: 'd1', organization_id: ORG, name: 'Sales' }, { id: 'd2', organization_id: ORG, name: 'Service' }],
+  candidates: [{ status: 'applied', organization_id: ORG }, { status: 'interviewed', organization_id: ORG }, { status: 'offer_extended', organization_id: ORG }, { status: 'joined', organization_id: ORG }, { status: 'rejected', organization_id: ORG }],
+  okrs: [{ id: 'o1', employee_id: 'emp-2', title: 'Grow test-drive conversions to 35%', period: 'Q3 FY27', overall_progress: 60, status: 'submitted' }],
   learning_courses: [...Object.values(COURSES), course('c8', 'Showroom etiquette (draft)', 1, { status: 'draft' }), course('c9', 'Old CRM walkthrough', 1, { status: 'archived' })],
   skills: [{ id: 's1', name: 'Active listening', organization_id: ORG }, { id: 's2', name: 'Questioning', organization_id: ORG }],
   learning_modules: [
@@ -47,9 +62,12 @@ const FIXTURES: Record<string, any[]> = {
     ...[1, 2, 3, 4, 5].map(n => ({ id: `m7${n}`, course_id: 'c7', title: `Session ${n}`, content_type: 'presentation', is_mandatory: true, order_index: n, duration_minutes: 24, content_url: null, content_file_path: null, content_file_name: null })),
   ],
   induction_journeys: [],
-  org_messages: [],
+  org_messages: [
+    { id: 'msg1', title: 'Aeris launch training: 28 Oct, 9 am', body: 'All showroom staff to attend. Session at the Andheri training room.', priority: 'high', expires_at: null, created_at: '2026-10-22T09:00:00Z', sender_id: 'user-1', organization_id: ORG },
+    { id: 'msg2', title: 'New quick links added', body: 'Product brochures and the price list are now pinned on your dashboard.', priority: 'normal', expires_at: null, created_at: '2026-10-20T09:00:00Z', sender_id: 'user-1', organization_id: ORG },
+  ],
   message_reads: [],
-  pinned_resources: [],
+  pinned_resources: [{ id: 'pr1', title: 'Aeris brochure', url: 'https://example.com', description: 'PDF, 12 pages', icon: 'book', organization_id: ORG, sort_order: 1 }, { id: 'pr2', title: 'Price list Oct 2026', url: 'https://example.com', icon: 'link', organization_id: ORG, sort_order: 2 }],
 };
 
 const PROFILE: UserProfile = { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE as UserRole, is_active: true, created_at: '', updated_at: '' };
