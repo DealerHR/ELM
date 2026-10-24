@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, CreditCard as Edit2, Trash2, BookOpen, Video, FileText, Link as LinkIcon, ArrowUp, ArrowDown, ChevronRight, Archive, CheckCircle, File as FileEdit, X, Clock, Layers, Upload, HelpCircle, Award, Users, ClipboardList, Monitor, Briefcase, Play } from 'lucide-react';
+import { Plus, Pencil as Edit2, Trash2, BookOpen, Video, FileText, Link as LinkIcon, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, Archive, CheckCircle, File as FileEdit, X, Layers, Upload, HelpCircle, Award, Users, ClipboardList, Monitor, Briefcase, Play } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import QuizBuilder from './course-builder/QuizBuilder';
@@ -111,6 +111,9 @@ export default function CourseBuilder() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'course' | 'assessment'>('all');
   const [descExpanded, setDescExpanded] = useState(false);
+  const [courseStats, setCourseStats] = useState<{ assigned: number; completed: number; paths: string[] } | null>(null);
+  // On phones the list and the detail are two screens; this says which one is showing.
+  const [mobileDetail, setMobileDetail] = useState(false);
 
   useEffect(() => {
     if (userProfile?.organization_id) {
@@ -120,7 +123,7 @@ export default function CourseBuilder() {
   }, [userProfile?.organization_id]);
 
   useEffect(() => {
-    if (selectedCourse) loadModules(selectedCourse.id);
+    if (selectedCourse) { loadModules(selectedCourse.id); loadCourseStats(selectedCourse.id); }
     else setModules([]);
     setDescExpanded(false);
   }, [selectedCourse?.id]);
@@ -146,6 +149,22 @@ export default function CourseBuilder() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCourseStats = async (courseId: string) => {
+    setCourseStats(null);
+    const [asg, prog, items] = await Promise.all([
+      supabase.from('employee_learning_assignments').select('employee_id, status').eq('course_id', courseId),
+      supabase.from('learning_progress').select('employee_id, status').eq('course_id', courseId).is('module_id', null),
+      supabase.from('learning_path_items').select('learning_paths(title)').eq('course_id', courseId),
+    ]);
+    // A learner counts as assigned if the course was assigned directly or reached through a path.
+    const assignedIds = new Set<string>();
+    const completedIds = new Set<string>();
+    for (const a of (asg.data || []) as { employee_id: string; status: string }[]) { assignedIds.add(a.employee_id); if (a.status === 'completed') completedIds.add(a.employee_id); }
+    for (const p of (prog.data || []) as { employee_id: string; status: string }[]) { assignedIds.add(p.employee_id); if (p.status === 'completed') completedIds.add(p.employee_id); }
+    const paths = [...new Set((items.data || []).map((i: any) => i.learning_paths?.title).filter(Boolean))] as string[];
+    setCourseStats({ assigned: assignedIds.size, completed: completedIds.size, paths });
   };
 
   const loadModules = async (courseId: string) => {
@@ -307,321 +326,302 @@ export default function CourseBuilder() {
 
   const isLDManager = userProfile?.role && ['admin', 'platform_admin', 'l_d_manager', 'org_admin', 'hr'].includes(userProfile.role);
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="px-8 pt-8 pb-0 flex-shrink-0">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Course Builder</h1>
-            <p className="text-sm text-gray-500 mt-1">Build courses, assessments and manage learning certifications</p>
-          </div>
-          {activeTab === 'courses' && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setEditingCourse(null); setCourseForm({ ...BLANK_COURSE, is_assessment: true }); setShowCourseForm(true); }}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold text-sm"
-              >
-                <ClipboardList className="w-4 h-4" />
-                New Assessment
-              </button>
-              <button
-                onClick={() => { setEditingCourse(null); setCourseForm(BLANK_COURSE); setShowCourseForm(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition font-semibold text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                New Course
-              </button>
-            </div>
-          )}
-        </div>
+  const selectCourse = (course: Course) => { setSelectedCourse(course); setMobileDetail(true); };
 
-        {isLDManager && (
-          <div className="flex border-b border-gray-200">
+  const newCourseButton = (assessment: boolean) => () => {
+    setEditingCourse(null);
+    setCourseForm({ ...BLANK_COURSE, is_assessment: assessment });
+    setShowCourseForm(true);
+  };
+
+  const requiredCount = modules.filter(m => m.is_mandatory).length;
+  const totalMinutes = modules.reduce((s, m) => s + (m.duration_minutes || 0), 0);
+
+  const chip = (cls: string, text: string) => (
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>
+  );
+
+  const statusChip = (status: string) => {
+    const sm = STATUS_META[status] || STATUS_META.draft;
+    return chip(sm.color.replace(/bg-(\w+)-100/, 'bg-$1-50'), sm.label);
+  };
+
+  return (
+    <div className="h-full flex flex-col min-h-0">
+      {/* Toolbar: tabs left, actions right */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 flex items-center gap-3 h-11">
+        {isLDManager ? (
+          <div className="flex items-stretch gap-5 h-full">
             {([
-              { id: 'courses', label: 'Courses & Assessments', icon: BookOpen },
-              { id: 'certifications', label: 'L&D Certifications', icon: Award },
-            ] as { id: Tab; label: string; icon: React.ElementType }[]).map(tab => (
+              { id: 'courses', label: 'Courses & assessments', short: 'Courses', count: courses.length },
+              { id: 'certifications', label: 'Certifications', short: 'Certifications', count: null },
+            ] as { id: Tab; label: string; short: string; count: number | null }[]).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition ${
-                  activeTab === tab.id
-                    ? 'border-stratefix-yellow text-gray-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                className={`flex items-center gap-1.5 text-[13px] border-b-2 transition ${activeTab === tab.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
               >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.short}</span>
+                {tab.count !== null && <span className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{tab.count}</span>}
               </button>
             ))}
+          </div>
+        ) : <span className="text-[13px] font-semibold text-gray-900">Courses & assessments</span>}
+        <div className="flex-1" />
+        {activeTab === 'courses' && (
+          <div className="flex items-center gap-2">
+            <button onClick={newCourseButton(true)} className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition text-[13px] font-medium">
+              <ClipboardList className="w-3.5 h-3.5" /> New assessment
+            </button>
+            <button onClick={newCourseButton(false)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold">
+              <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New course</span><span className="sm:hidden">New</span>
+            </button>
           </div>
         )}
       </div>
 
       {activeTab === 'certifications' && userProfile?.organization_id ? (
-        <div className="flex-1 min-h-0 px-8 pb-8 pt-4">
-          <div className="h-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <LDCertifications organizationId={userProfile.organization_id} />
-          </div>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <LDCertifications organizationId={userProfile.organization_id} />
         </div>
       ) : (
-        <div className="flex flex-1 gap-0 min-h-0 px-8 pb-8 pt-4">
-          <div className="w-72 flex-shrink-0 flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm mr-5">
-            <div className="p-3 border-b border-gray-100 space-y-2">
-              <div className="flex gap-1 flex-wrap">
-                {(['all', 'draft', 'published', 'archived'] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setStatusFilter(f)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition capitalize ${statusFilter === f ? 'bg-stratefix-yellow text-stratefix-black' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-1">
-                {([
-                  { id: 'all', label: 'All' },
-                  { id: 'course', label: 'Courses' },
-                  { id: 'assessment', label: 'Assessments' },
-                ] as { id: 'all' | 'course' | 'assessment'; label: string }[]).map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setTypeFilter(f.id)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition ${typeFilter === f.id ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+        <div className="flex flex-1 min-h-0">
+
+          {/* List */}
+          <section
+            aria-label="Courses"
+            className={`w-full lg:w-[280px] lg:flex-shrink-0 flex-col bg-white lg:border-r border-gray-200 min-h-0 ${mobileDetail ? 'hidden lg:flex' : 'flex'}`}
+          >
+            <div className="px-3 py-2.5 border-b border-gray-100 flex flex-wrap gap-1.5">
+              {(['all', 'published', 'draft', 'archived'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  className={`h-7 px-2.5 rounded-full text-xs font-medium capitalize transition ${statusFilter === f ? 'bg-stratefix-black text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {f}
+                </button>
+              ))}
+              <button
+                onClick={() => setTypeFilter(typeFilter === 'assessment' ? 'all' : 'assessment')}
+                className={`h-7 px-2.5 rounded-full text-xs font-medium transition ${typeFilter === 'assessment' ? 'bg-violet-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                Assessments
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+
+            <div className="flex-1 overflow-y-auto">
               {filteredCourses.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">No items found</div>
+                <div className="text-center py-10 text-gray-400 text-sm">Nothing matches these filters</div>
               )}
               {filteredCourses.map(course => {
-                const sm = STATUS_META[course.status] || STATUS_META.draft;
-                const dm = DELIVERY_META[course.delivery_type || 'self_paced'];
                 const isSelected = selectedCourse?.id === course.id;
+                const dm = DELIVERY_META[course.delivery_type || 'self_paced'];
+                const dot = course.status === 'published' ? 'bg-emerald-500' : course.status === 'archived' ? 'bg-gray-300' : 'bg-amber-400';
                 return (
                   <button
                     key={course.id}
-                    onClick={() => setSelectedCourse(course)}
-                    className={`w-full text-left p-3 rounded-lg border transition group ${isSelected ? 'border-stratefix-yellow bg-yellow-50' : 'border-gray-100 hover:border-stratefix-yellow hover:bg-yellow-50/40'}`}
+                    onClick={() => selectCourse(course)}
+                    aria-current={isSelected ? 'true' : undefined}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSelected ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}
                   >
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="font-semibold text-gray-900 text-sm leading-snug flex-1">{course.title}</span>
-                      <ChevronRight className={`w-4 h-4 flex-shrink-0 mt-0.5 transition ${isSelected ? 'text-stratefix-black' : 'text-gray-300 group-hover:text-gray-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-gray-900 truncate">{course.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {course.is_assessment ? 'Assessment' : dm.label}{course.duration_hours > 0 ? ` · ${course.duration_hours} h` : ''}{course.category ? ` · ${course.category}` : ''}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${sm.color}`}>
-                        <sm.icon className="w-3 h-3" />{sm.label}
-                      </span>
-                      {course.is_assessment ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
-                          <ClipboardList className="w-3 h-3" />Assessment
-                        </span>
-                      ) : (
-                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${dm.color}`}>
-                          <dm.icon className="w-3 h-3" />{dm.label}
-                        </span>
-                      )}
-                    </div>
-                    {course.duration_hours > 0 && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-                        <Clock className="w-3 h-3" />{course.duration_hours}h
-                      </div>
-                    )}
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} title={STATUS_META[course.status]?.label || course.status} />
+                    <ChevronRight className="w-4 h-4 text-gray-300 lg:hidden" />
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          <div className="flex-1 min-w-0">
+          {/* Detail */}
+          <section
+            aria-label="Course detail"
+            className={`flex-1 min-w-0 flex-col min-h-0 overflow-y-auto ${mobileDetail ? 'flex' : 'hidden lg:flex'}`}
+          >
             {!selectedCourse ? (
-              <div className="h-full flex items-center justify-center bg-white rounded-xl border border-gray-100 shadow-sm">
+              <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center">
-                  <Layers className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-                  <h3 className="text-base font-semibold text-gray-700 mb-1">Select a course or assessment</h3>
-                  <p className="text-sm text-gray-400">Choose from the list to view and edit its content</p>
+                  <Layers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Select a course or assessment</h3>
+                  <p className="text-xs text-gray-500">Choose one from the list to see and edit its modules.</p>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm">
-                <div className="p-5 border-b border-gray-100 flex items-start justify-between gap-4">
+              <div className="p-4 lg:p-6 space-y-4">
+                <button onClick={() => setMobileDetail(false)} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1">
+                  <ChevronLeft className="w-4 h-4" /> All courses
+                </button>
+
+                {/* Title row */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h2 className="text-lg font-bold text-gray-900">{selectedCourse.title}</h2>
-                      {(() => {
-                        const sm = STATUS_META[selectedCourse.status] || STATUS_META.draft;
-                        return (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${sm.color}`}>
-                            <sm.icon className="w-3.5 h-3.5" />{sm.label}
-                          </span>
-                        );
-                      })()}
-                      {selectedCourse.is_assessment ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
-                          <ClipboardList className="w-3.5 h-3.5" />Assessment
-                        </span>
-                      ) : (() => {
-                        const dm = DELIVERY_META[selectedCourse.delivery_type || 'self_paced'];
-                        return (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${dm.color}`}>
-                            <dm.icon className="w-3.5 h-3.5" />{dm.label}
-                          </span>
-                        );
-                      })()}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-lg font-semibold text-gray-900 leading-tight">{selectedCourse.title}</h2>
+                      {statusChip(selectedCourse.status)}
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
-                      {selectedCourse.category && <span className="text-gray-400">{selectedCourse.category}</span>}
-                      {selectedCourse.duration_hours > 0 && <span className="text-gray-400">• {selectedCourse.duration_hours}h</span>}
-                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {[
+                        selectedCourse.is_assessment ? 'Assessment' : DELIVERY_META[selectedCourse.delivery_type || 'self_paced'].label,
+                        selectedCourse.duration_hours > 0 ? `${selectedCourse.duration_hours} h` : null,
+                        selectedCourse.category,
+                        (selectedCourse.skill_ids || []).length > 0
+                          ? 'Skills: ' + (selectedCourse.skill_ids || []).map(sid => availableSkills.find(sk => sk.id === sid)?.name).filter(Boolean).join(', ')
+                          : null,
+                      ].filter(Boolean).join(' · ')}
+                    </p>
                     {selectedCourse.description && (
-                      <div className="mt-1">
-                        <p className={`text-sm text-gray-500 ${descExpanded ? '' : 'line-clamp-2'}`}>
-                          {selectedCourse.description}
-                        </p>
-                        {selectedCourse.description.length > 120 && (
-                          <button
-                            onClick={() => setDescExpanded(e => !e)}
-                            className="text-xs text-blue-600 hover:underline mt-0.5 font-medium"
-                          >
+                      <div className="mt-2 max-w-3xl">
+                        <p className={`text-[13px] text-gray-700 leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{selectedCourse.description}</p>
+                        {selectedCourse.description.length > 140 && (
+                          <button onClick={() => setDescExpanded(e => !e)} className="text-xs text-blue-800 font-medium mt-0.5 hover:underline">
                             {descExpanded ? 'Show less' : 'Show more'}
                           </button>
                         )}
                       </div>
                     )}
-                    {(selectedCourse.skill_ids || []).length > 0 && (
-                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                        <span className="text-xs text-gray-400">Skills:</span>
-                        {(selectedCourse.skill_ids || []).map(sid => {
-                          const sk = availableSkills.find(s => s.id === sid);
-                          return sk ? <span key={sid} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">{sk.name}</span> : null;
-                        })}
-                      </div>
-                    )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {selectedCourse.status !== 'published' && (
-                      <button onClick={() => handleStatusChange(selectedCourse, 'published')} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-semibold">
-                        <CheckCircle className="w-3.5 h-3.5" />Publish
-                      </button>
+                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                    {selectedCourse.status !== 'published' ? (
+                      <button onClick={() => handleStatusChange(selectedCourse, 'published')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[13px] font-semibold hover:bg-emerald-700 transition">Publish</button>
+                    ) : (
+                      <button onClick={() => handleStatusChange(selectedCourse, 'draft')} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">Unpublish</button>
                     )}
-                    {selectedCourse.status === 'published' && (
-                      <button onClick={() => handleStatusChange(selectedCourse, 'draft')} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-xs font-semibold">
-                        <FileEdit className="w-3.5 h-3.5" />Unpublish
-                      </button>
-                    )}
+                    <button onClick={() => handleEditCourse(selectedCourse)} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">Edit</button>
                     {selectedCourse.status !== 'archived' && (
-                      <button onClick={() => handleStatusChange(selectedCourse, 'archived')} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition text-xs font-semibold">
-                        <Archive className="w-3.5 h-3.5" />Archive
-                      </button>
+                      <button onClick={() => handleStatusChange(selectedCourse, 'archived')} title="Archive" className="h-8 w-8 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition flex items-center justify-center"><Archive className="w-3.5 h-3.5" /></button>
                     )}
-                    <button onClick={() => handleEditCourse(selectedCourse)} className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs font-semibold">
-                      <Edit2 className="w-3.5 h-3.5" />Edit
-                    </button>
-                    <button onClick={() => setDeleteConfirm({ type: 'course', id: selectedCourse.id })} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <button onClick={() => setDeleteConfirm({ type: 'course', id: selectedCourse.id })} title="Delete" className="h-8 w-8 rounded-lg border border-gray-300 text-red-600 hover:bg-red-50 transition flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
+                </div>
+
+                {/* Stats strip */}
+                <div className="flex flex-wrap gap-x-6 gap-y-2 px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg">
+                  <div><p className="text-[11px] text-gray-500">Assigned</p><p className="text-[13px] font-semibold text-gray-900">{courseStats ? `${courseStats.assigned} learner${courseStats.assigned === 1 ? '' : 's'}` : '…'}</p></div>
+                  <div><p className="text-[11px] text-gray-500">Completed</p><p className="text-[13px] font-semibold text-gray-900">{courseStats ? `${courseStats.completed}${courseStats.assigned ? ` · ${Math.round((courseStats.completed / courseStats.assigned) * 100)}%` : ''}` : '…'}</p></div>
+                  <div><p className="text-[11px] text-gray-500">Modules</p><p className="text-[13px] font-semibold text-gray-900">{modules.length} · {totalMinutes} min · {requiredCount} required</p></div>
+                  <div className="min-w-0"><p className="text-[11px] text-gray-500">In learning paths</p><p className="text-[13px] font-semibold text-gray-900 truncate">{courseStats ? (courseStats.paths.length ? courseStats.paths.join(', ') : 'None') : '…'}</p></div>
                 </div>
 
                 {(selectedCourse.delivery_type === 'classroom' || selectedCourse.delivery_type === 'on_job') && !selectedCourse.is_assessment && (
-                  <div className="mx-5 mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg flex items-center gap-2.5">
+                  <div className="px-3.5 py-2.5 bg-teal-50 border border-teal-200 rounded-lg flex items-center gap-2.5 text-xs text-teal-900">
                     <Award className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                    <p className="text-xs text-teal-800">
-                      <strong>{DELIVERY_META[selectedCourse.delivery_type].label}</strong> — Completion must be certified by an L&D manager.
-                      Use the <button onClick={() => setActiveTab('certifications')} className="underline font-semibold hover:no-underline">Certifications tab</button> to mark learner sessions as complete.
-                    </p>
+                    <span>
+                      <strong>{DELIVERY_META[selectedCourse.delivery_type].label}:</strong> completion is signed off by L&D in the{' '}
+                      <button onClick={() => setActiveTab('certifications')} className="underline font-semibold hover:no-underline">Certifications</button> tab.
+                    </span>
                   </div>
                 )}
 
-                <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-50">
-                  <h3 className="font-semibold text-gray-800 text-sm">
-                    {selectedCourse.is_assessment ? 'Assessment Modules' : 'Modules'} <span className="text-gray-400 font-normal">({modules.length})</span>
-                  </h3>
-                  <button
-                    onClick={() => { setEditingModule(null); setModuleForm({ ...BLANK_MODULE, content_type: selectedCourse.is_assessment ? 'quiz' : 'video' }); setUploadFile(null); setShowModuleForm(true); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition text-xs font-semibold"
-                  >
-                    <Plus className="w-3.5 h-3.5" />Add Module
-                  </button>
-                </div>
+                {/* Modules table */}
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-200">
+                    <h3 className="text-[13px] font-semibold text-gray-900">{selectedCourse.is_assessment ? 'Assessment modules' : 'Modules'}</h3>
+                    <span className="text-xs text-gray-500">{modules.length}</span>
+                    <div className="flex-1" />
+                    <button
+                      onClick={() => { setEditingModule(null); setModuleForm({ ...BLANK_MODULE, content_type: selectedCourse.is_assessment ? 'quiz' : 'video' }); setUploadFile(null); setShowModuleForm(true); }}
+                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add module
+                    </button>
+                  </div>
 
-                <div className="flex-1 overflow-y-auto p-5">
                   {modules.length === 0 ? (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h4 className="text-sm font-semibold text-gray-600 mb-1">No modules yet</h4>
-                      <p className="text-xs text-gray-400">Add modules to structure this {selectedCourse.is_assessment ? 'assessment' : 'course'}</p>
+                    <div className="text-center py-10">
+                      <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-700">No modules yet</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Add the first module to give this {selectedCourse.is_assessment ? 'assessment' : 'course'} some content.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {modules.map((module, index) => {
-                        const Icon = getContentIcon(module.content_type);
-                        const isQuiz = module.content_type === 'quiz';
-                        return (
-                          <div key={module.id} className="flex items-start gap-3 p-4 border border-gray-100 rounded-lg hover:border-gray-200 transition">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${isQuiz ? 'bg-violet-100' : 'bg-gray-100'}`}>
-                              <Icon className={`w-4 h-4 ${isQuiz ? 'text-violet-600' : 'text-gray-500'}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-xs text-gray-400 font-medium">Module {index + 1}</span>
-                                {module.is_mandatory && <span className="text-xs px-1.5 py-0.5 bg-red-50 text-red-600 rounded font-medium">Mandatory</span>}
-                                {isQuiz && <span className="text-xs px-1.5 py-0.5 bg-violet-50 text-violet-600 rounded font-medium">Quiz</span>}
+                    <>
+                      {/* Desktop table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-[13px]">
+                          <thead>
+                            <tr className="text-[11px] text-gray-500 text-left">
+                              <th className="font-medium px-3.5 py-2 w-8">#</th>
+                              <th className="font-medium px-3.5 py-2">Module</th>
+                              <th className="font-medium px-3.5 py-2 w-28">Type</th>
+                              <th className="font-medium px-3.5 py-2 w-20">Length</th>
+                              <th className="font-medium px-3.5 py-2 w-24">Required</th>
+                              <th className="font-medium px-3.5 py-2 w-44"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {modules.map((module, index) => {
+                              const Icon = getContentIcon(module.content_type);
+                              const isQuiz = module.content_type === 'quiz';
+                              return (
+                                <tr key={module.id} className="border-t border-gray-100 group">
+                                  <td className="px-3.5 py-2.5 text-gray-500">{index + 1}</td>
+                                  <td className="px-3.5 py-2.5">
+                                    <p className="font-medium text-gray-900">{module.title}</p>
+                                    <p className="text-xs text-gray-500 truncate max-w-md">
+                                      {module.content_file_name || module.content_url || module.description || ''}
+                                    </p>
+                                  </td>
+                                  <td className="px-3.5 py-2.5 text-gray-700"><span className="inline-flex items-center gap-1.5"><Icon className={`w-3.5 h-3.5 ${isQuiz ? 'text-violet-600' : 'text-gray-400'}`} />{module.content_type.replace('_', ' ')}</span></td>
+                                  <td className="px-3.5 py-2.5 text-gray-700">{module.duration_minutes} min</td>
+                                  <td className="px-3.5 py-2.5">{module.is_mandatory ? chip('bg-amber-50 text-amber-800', 'Required') : <span className="text-xs text-gray-500">Optional</span>}</td>
+                                  <td className="px-3.5 py-2.5">
+                                    <div className="flex items-center justify-end gap-0.5 opacity-70 group-hover:opacity-100">
+                                      {isQuiz && (
+                                        <button onClick={() => setQuizBuilderModule(module)} className="h-7 px-2 rounded-md text-xs font-medium text-violet-700 hover:bg-violet-50 transition">Questions</button>
+                                      )}
+                                      <button onClick={() => handleMoveModule(module.id, 'up')} disabled={index === 0} title="Move up" className="h-7 w-7 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><ArrowUp className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => handleMoveModule(module.id, 'down')} disabled={index === modules.length - 1} title="Move down" className="h-7 w-7 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 flex items-center justify-center"><ArrowDown className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => handleEditModule(module)} title="Edit" className="h-7 w-7 rounded-md text-gray-600 hover:bg-gray-100 flex items-center justify-center"><Edit2 className="w-3.5 h-3.5" /></button>
+                                      <button onClick={() => setDeleteConfirm({ type: 'module', id: module.id })} title="Delete" className="h-7 w-7 rounded-md text-red-500 hover:bg-red-50 flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Phone list */}
+                      <ul className="md:hidden divide-y divide-gray-100">
+                        {modules.map((module, index) => {
+                          const Icon = getContentIcon(module.content_type);
+                          const isQuiz = module.content_type === 'quiz';
+                          return (
+                            <li key={module.id} className="px-3.5 py-3">
+                              <div className="flex items-start gap-3">
+                                <span className="text-xs text-gray-500 w-4 pt-0.5">{index + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-medium text-gray-900">{module.title}</p>
+                                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                    <Icon className={`w-3.5 h-3.5 ${isQuiz ? 'text-violet-600' : 'text-gray-400'}`} />
+                                    <span className="capitalize">{module.content_type.replace('_', ' ')}</span> · {module.duration_minutes} min
+                                    {module.is_mandatory && <> · <span className="text-amber-800 font-medium">Required</span></>}
+                                  </p>
+                                </div>
                               </div>
-                              <p className="font-semibold text-gray-900 text-sm">{module.title}</p>
-                              {module.description && <p className="text-xs text-gray-500 mt-0.5">{module.description}</p>}
-                              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 flex-wrap">
-                                <span className="capitalize">{module.content_type.replace('_', ' ')}</span>
-                                <span>•</span>
-                                <span>{module.duration_minutes} min</span>
-                                {module.content_file_name && (
-                                  <span className="flex items-center gap-1 text-blue-600">
-                                    <FileText className="w-3 h-3" />{module.content_file_name}
-                                  </span>
-                                )}
-                                {module.content_url && !module.content_file_path && (
-                                  <span className="flex items-center gap-1 truncate max-w-32">
-                                    <LinkIcon className="w-3 h-3" />{module.content_url}
-                                  </span>
-                                )}
+                              <div className="flex items-center gap-1 mt-2 pl-7">
+                                {isQuiz && <button onClick={() => setQuizBuilderModule(module)} className="h-9 px-3 rounded-lg text-xs font-medium text-violet-700 bg-violet-50">Questions</button>}
+                                <button onClick={() => handleEditModule(module)} className="h-9 px-3 rounded-lg text-xs font-medium text-gray-700 border border-gray-300">Edit</button>
+                                <button onClick={() => handleMoveModule(module.id, 'up')} disabled={index === 0} aria-label="Move up" className="h-9 w-9 rounded-lg text-gray-500 border border-gray-200 disabled:opacity-30 flex items-center justify-center"><ArrowUp className="w-4 h-4" /></button>
+                                <button onClick={() => handleMoveModule(module.id, 'down')} disabled={index === modules.length - 1} aria-label="Move down" className="h-9 w-9 rounded-lg text-gray-500 border border-gray-200 disabled:opacity-30 flex items-center justify-center"><ArrowDown className="w-4 h-4" /></button>
+                                <button onClick={() => setDeleteConfirm({ type: 'module', id: module.id })} aria-label="Delete" className="h-9 w-9 rounded-lg text-red-500 border border-gray-200 flex items-center justify-center ml-auto"><Trash2 className="w-4 h-4" /></button>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {isQuiz && (
-                                <button
-                                  onClick={() => setQuizBuilderModule(module)}
-                                  className="flex items-center gap-1 px-2 py-1 text-violet-600 hover:bg-violet-50 rounded-lg transition text-xs font-medium"
-                                >
-                                  <HelpCircle className="w-3.5 h-3.5" />Questions
-                                </button>
-                              )}
-                              <button onClick={() => handleMoveModule(module.id, 'up')} disabled={index === 0} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition disabled:opacity-30">
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button onClick={() => handleMoveModule(module.id, 'down')} disabled={index === modules.length - 1} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition disabled:opacity-30">
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </button>
-                              <button onClick={() => handleEditModule(module)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition">
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button onClick={() => setDeleteConfirm({ type: 'module', id: module.id })} className="p-1.5 text-red-400 hover:bg-red-50 rounded transition">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
                   )}
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       )}
 

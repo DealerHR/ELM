@@ -5,8 +5,10 @@ export interface UserProfile { id: string; organization_id: string; email: strin
 export const QUIZ_PASS_MARK = 70;
 
 const ORG = 'org-1';
+const ROLE = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('role')) || 'employee';
 const EMP = 'emp-1';
-const course = (id: string, title: string, hours: number, extra: Record<string, unknown> = {}) => ({ id, title, description: null, category: 'Soft skills', type: 'role_specific', delivery_type: 'self_paced', is_assessment: false, duration_hours: hours, organization_id: ORG, status: 'published', ...extra });
+const LONG = 'Listening is the most under-trained skill on a sales floor. This course walks through why customers stop talking, how to notice it, and the three habits that keep a conversation open. It is built for showroom executives and team leads and is best taken before the final assessment. Each part ends with a short quiz; all three must be passed to finish.';
+const course = (id: string, title: string, hours: number, extra: Record<string, unknown> = {}) => ({ id, title, description: id === 'c1' ? LONG : null, skill_ids: id === 'c1' ? ['s1', 's2'] : [], category: 'Soft skills', type: 'role_specific', delivery_type: 'self_paced', is_assessment: false, duration_hours: hours, organization_id: ORG, status: 'published', ...extra });
 
 const COURSES: Record<string, any> = {
   c1: course('c1', 'Part 1: Why listening matters', 0.5),
@@ -22,23 +24,26 @@ const in3 = new Date(Date.now() + 3 * 86400000).toISOString();
 const in20 = new Date(Date.now() + 20 * 86400000).toISOString();
 
 const FIXTURES: Record<string, any[]> = {
-  user_profiles: [{ id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: 'employee', is_active: true, created_at: '', updated_at: '' }],
+  user_profiles: [{ id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE, is_active: true, created_at: '', updated_at: '' }],
   employees: [{ id: EMP, user_id: 'user-1', organization_id: ORG, employee_code: 'E1', designation_id: 'd1' }],
   employee_learning_assignments: [
     { id: 'a1', employee_id: EMP, course_id: null, learning_path_id: 'p1', status: 'in_progress', due_date: in20, assigned_date: '2026-10-10', learning_courses: null, learning_paths: { id: 'p1', title: 'Professional Listening', description: null } },
     { id: 'a2', employee_id: EMP, course_id: 'c7', learning_path_id: null, status: 'assigned', due_date: null, assigned_date: '2026-10-12', learning_courses: COURSES.c7, learning_paths: null },
     { id: 'a3', employee_id: EMP, course_id: 'c6', learning_path_id: null, status: 'assigned', due_date: in3, assigned_date: '2026-10-12', learning_courses: COURSES.c6, learning_paths: null },
   ],
-  learning_path_items: ['c1', 'c2', 'c3', 'c4', 'c5'].map((cid, i) => ({ id: `pi${i + 1}`, path_id: 'p1', course_id: cid, order_index: i + 1, is_mandatory: true, prerequisite_item_id: i === 0 ? null : `pi${i}`, prerequisite_path_id: null, learning_courses: COURSES[cid] })),
+  learning_path_items: ['c1', 'c2', 'c3', 'c4', 'c5'].map((cid, i) => ({ id: `pi${i + 1}`, path_id: 'p1', course_id: cid, order_index: i + 1, is_mandatory: true, prerequisite_item_id: i === 0 ? null : `pi${i}`, prerequisite_path_id: null, learning_courses: COURSES[cid], learning_paths: { title: 'Professional Listening' } })),
   learning_progress: [
     { id: 'pr1', assignment_id: 'a1', employee_id: EMP, course_id: 'c1', module_id: null, status: 'completed', progress_percentage: 100, completed_at: '2026-10-22T10:00:00Z', started_at: '2026-10-21' },
     { id: 'pr2', assignment_id: 'a1', employee_id: EMP, course_id: 'c2', module_id: null, status: 'completed', progress_percentage: 100, completed_at: '2026-10-22T12:00:00Z', started_at: '2026-10-22' },
     { id: 'pr3', assignment_id: 'a1', employee_id: EMP, course_id: 'c3', module_id: null, status: 'in_progress', progress_percentage: 33, completed_at: null, started_at: '2026-10-23' },
+    { id: 'pr5', assignment_id: 'a9', employee_id: 'emp-2', course_id: 'c1', module_id: null, status: 'completed', progress_percentage: 100, completed_at: '2026-10-20', started_at: '2026-10-19' },
     { id: 'pr4', assignment_id: 'a1', employee_id: EMP, course_id: 'c3', module_id: 'm31', status: 'completed', progress_percentage: 100, completed_at: '2026-10-23', started_at: '2026-10-23' },
   ],
   ld_certifications: [],
+  learning_courses: [...Object.values(COURSES), course('c8', 'Showroom etiquette (draft)', 1, { status: 'draft' }), course('c9', 'Old CRM walkthrough', 1, { status: 'archived' })],
+  skills: [{ id: 's1', name: 'Active listening', organization_id: ORG }, { id: 's2', name: 'Questioning', organization_id: ORG }],
   learning_modules: [
-    ...['c1', 'c2', 'c3', 'c4', 'c5'].flatMap(cid => [1, 2, 3].map(n => ({ id: `m${cid.slice(1)}${n}`, course_id: cid, title: n === 1 ? 'Watch: the scenario' : n === 2 ? 'Read: key ideas' : 'Quick check', content_type: n === 3 ? 'quiz' : n === 1 ? 'video' : 'document', is_mandatory: true, order_index: n, duration_minutes: n === 3 ? 5 : 8, content_url: null, content_file_path: null, content_file_name: null }))),
+    ...['c1', 'c2', 'c3', 'c4', 'c5'].flatMap(cid => [1, 2, 3].map(n => ({ id: `m${cid.slice(1)}${n}`, course_id: cid, title: n === 1 ? 'Watch: the scenario' : n === 2 ? 'Read: key ideas' : 'Quick check', content_type: n === 3 ? 'quiz' : n === 1 ? 'video' : 'document', description: n === 2 ? 'Three-page summary of the key ideas' : null, is_mandatory: n !== 2, order_index: n, duration_minutes: n === 3 ? 5 : 8, content_url: n === 1 ? 'https://youtu.be/abc123' : null, content_file_path: null, content_file_name: n === 2 ? 'key-ideas.pptx' : null }))),
     ...[1, 2, 3, 4, 5].map(n => ({ id: `m7${n}`, course_id: 'c7', title: `Session ${n}`, content_type: 'presentation', is_mandatory: true, order_index: n, duration_minutes: 24, content_url: null, content_file_path: null, content_file_name: null })),
   ],
   induction_journeys: [],
@@ -47,7 +52,7 @@ const FIXTURES: Record<string, any[]> = {
   pinned_resources: [],
 };
 
-const PROFILE: UserProfile = { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: 'employee', is_active: true, created_at: '', updated_at: '' };
+const PROFILE: UserProfile = { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE as UserRole, is_active: true, created_at: '', updated_at: '' };
 
 function builder(table: string) {
   let rows = [...(FIXTURES[table] || [])];
@@ -56,6 +61,7 @@ function builder(table: string) {
     select() { return b; },
     eq(col: string, val: unknown) { rows = rows.filter(r => r[col] === val || col.includes('.')); return b; },
     in(col: string, vals: unknown[]) { rows = rows.filter(r => vals.includes(r[col])); return b; },
+    is(col: string, val: unknown) { rows = rows.filter(r => (r[col] ?? null) === val); return b; },
     or() { return b; }, not() { return b; }, order() { return b; }, limit() { return b; }, gte() { return b; }, lte() { return b; },
     maybeSingle() { single = true; return b; },
     single() { single = true; return b; },
