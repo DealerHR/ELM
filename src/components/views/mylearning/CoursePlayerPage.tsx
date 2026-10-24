@@ -662,7 +662,7 @@ export default function CoursePlayerPage({
                   ) : nextUndoneIdx >= 0 && !readOnly ? (
                     <button
                       onClick={() => requestGoTo(nextUndoneIdx)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-yellow-400/60 text-xs font-semibold text-yellow-300 hover:bg-stratefix-yellow/90/10 transition"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-yellow-400/60 text-xs font-semibold text-yellow-300 hover:bg-yellow-400/10 transition"
                     >
                       <span className="hidden sm:inline">Go to unfinished</span>
                       <span className="sm:hidden">Unfinished</span>
