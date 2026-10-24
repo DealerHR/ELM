@@ -121,7 +121,7 @@ function AppContent() {
       case 'course-access-requests':
         return <CourseAccessRequests />;
       case 'okrs':
-        return <OKRs />;
+        return <OKRs learnerMode={learnerMode} />;
       case 'reviews':
         return <Reviews />;
       case 'repository':

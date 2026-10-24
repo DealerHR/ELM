@@ -72,7 +72,7 @@ export const STAFF_SECTIONS: NavSection[] = [
     id: 'perform',
     label: 'Perform',
     items: [
-      { id: 'okrs', label: 'Team OKRs', shortLabel: 'OKRs', icon: Target, roles: ['manager', 'admin', 'hr'], mobilePrimary: true },
+      { id: 'okrs', label: 'OKRs', icon: Target, roles: ['manager', 'admin', 'hr'], mobilePrimary: true },
     ],
   },
   {

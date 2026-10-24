@@ -60,7 +60,17 @@ const FIXTURES: Record<string, any[]> = {
   departments: [{ id: 'd1', organization_id: ORG, name: 'Sales' }, { id: 'd2', organization_id: ORG, name: 'Service' }],
   designations: [{ id: 'd1', organization_id: ORG, title: 'Showroom Manager' }, { id: 'd2', organization_id: ORG, title: 'Sales Executive' }],
   candidates: [{ status: 'applied', organization_id: ORG }, { status: 'interviewed', organization_id: ORG }, { status: 'offer_extended', organization_id: ORG }, { status: 'joined', organization_id: ORG }, { status: 'rejected', organization_id: ORG }],
-  okrs: [{ id: 'o1', employee_id: 'emp-2', title: 'Grow test-drive conversions to 35%', period: 'Q3 FY27', overall_progress: 60, status: 'submitted' }],
+  okrs: [
+    { id: 'o1', employee_id: 'emp-2', title: 'Grow test-drive conversions', description: 'More of the walk-ins who test drive should buy.', okr_type: 'individual', period: 'quarterly', start_date: '2026-10-01', end_date: '2026-12-31', overall_progress: 63, status: 'set', set_by: 'user-1', set_at: '2026-10-02', key_results: [
+      { id: 'kr1', okr_id: 'o1', title: 'Test drives per month', target_value: 40, current_value: 10, unit: 'drives', weight: 50, progress_percentage: 25, status: 'on_track' },
+      { id: 'kr2', okr_id: 'o1', title: 'Conversion rate', target_value: 30, current_value: 30, unit: '%', weight: 50, progress_percentage: 100, status: 'completed' },
+    ], okr_comments: [
+      { id: 'c1', okr_id: 'o1', author_id: 'user-2', body: 'Can weekend event test drives count towards this?', created_at: '2026-10-10T09:00:00Z' },
+      { id: 'c2', okr_id: 'o1', author_id: 'user-1', body: 'Yes — anything logged in the DMS counts.', created_at: '2026-10-10T11:00:00Z' },
+    ], okr_review_comments: [] },
+    { id: 'o2', employee_id: 'emp-2', title: 'Complete Aeris product certification', okr_type: 'individual', period: 'quarterly', start_date: '2026-10-01', end_date: '2026-12-31', overall_progress: 0, status: 'draft', set_by: 'user-1', key_results: [], okr_comments: [], okr_review_comments: [] },
+    { id: 'o3', employee_id: 'emp-2', title: 'Q2: Reduce quote turnaround to 1 day', okr_type: 'individual', period: 'quarterly', start_date: '2026-07-01', end_date: '2026-09-30', overall_progress: 90, status: 'locked', set_by: 'user-1', locked_at: '2026-10-03', manager_summary: 'Strong quarter. Keep the same-day habit going.', final_rating: 4, key_results: [{ id: 'kr3', okr_id: 'o3', title: 'Quotes sent within 24 h', target_value: 95, current_value: 86, unit: '%', weight: 100, progress_percentage: 90, status: 'on_track' }], okr_comments: [], okr_review_comments: [] },
+  ],
   learning_courses: [...Object.values(COURSES), course('c8', 'Showroom etiquette (draft)', 1, { status: 'draft' }), course('c9', 'Old CRM walkthrough', 1, { status: 'archived' })],
   skills: [{ id: 's1', name: 'Active listening', organization_id: ORG }, { id: 's2', name: 'Questioning', organization_id: ORG }],
   learning_modules: [
@@ -98,7 +108,7 @@ const FIXTURES: Record<string, any[]> = {
   pinned_resources: [{ id: 'pr1', title: 'Aeris brochure', url: 'https://example.com', description: 'PDF, 12 pages', icon: 'book', organization_id: ORG, sort_order: 1 }, { id: 'pr2', title: 'Price list Oct 2026', url: 'https://example.com', icon: 'link', organization_id: ORG, sort_order: 2 }],
 };
 
-if (ROLE === 'employee') { FIXTURES.induction_journeys[0] = { ...FIXTURES.induction_journeys[0], employee_id: EMP }; }
+if (ROLE === 'employee') { FIXTURES.induction_journeys[0] = { ...FIXTURES.induction_journeys[0], employee_id: EMP }; FIXTURES.okrs = FIXTURES.okrs.map((o: any) => ({ ...o, employee_id: EMP })); }
 
 const PROFILE: UserProfile = { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE as UserRole, is_active: true, created_at: '', updated_at: '' };
 

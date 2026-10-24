@@ -28,7 +28,7 @@ interface DirectReport {
   pendingOKR: number; totalLearning: number; completedLearning: number; overdue: number;
 }
 
-interface PendingOKR { id: string; employee_id: string; employee_name: string; title: string; period: string; overall_progress: number; }
+interface PendingOKR { id: string; employee_id: string; employee_name: string; title: string; period: string; overall_progress: number; status: string; }
 
 interface OrgStats { total: number; completed: number; pending: number; overdue: number; learners: number; }
 interface CourseStats { published: number; draft: number; paths: number; }
@@ -339,7 +339,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
     const userIds = reports.map(r => r.user_id).filter(Boolean);
     const [profilesRes, okrRes, assignRes] = await Promise.all([
       supabase.from('user_profiles').select('id, full_name').in('id', userIds),
-      supabase.from('okrs').select('id, employee_id, title, period, overall_progress').in('employee_id', reportIds).eq('status', 'submitted'),
+      supabase.from('okrs').select('id, employee_id, title, period, overall_progress, status').in('employee_id', reportIds).in('status', ['draft', 'set']),
       supabase.from('employee_learning_assignments').select('employee_id, status, due_date').in('employee_id', reportIds),
     ]);
     const profiles = profilesRes.data || [];
@@ -347,10 +347,16 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
     const asg = (assignRes.data || []) as { employee_id: string; status: string; due_date: string | null }[];
     const now = new Date();
 
-    setPendingOKRs(okrs.map(o => {
-      const rep = reports.find(r => r.id === o.employee_id);
-      return { ...o, employee_name: profiles.find(p => p.id === rep?.user_id)?.full_name || 'Unknown' };
+    // Waiting on the manager: drafts not yet shared, and people with no OKR set at all.
+    const drafts = okrs.filter(o => o.status === 'draft');
+    const withSet = new Set(okrs.filter(o => o.status === 'set').map(o => o.employee_id));
+    const unsetPeople: PendingOKR[] = reports.filter(r => !withSet.has(r.id) && !drafts.some(d => d.employee_id === r.id)).map(r => ({
+      id: `unset-${r.id}`, employee_id: r.id, employee_name: profiles.find(p => p.id === r.user_id)?.full_name || 'Unknown', title: 'No OKR set', period: '', overall_progress: 0, status: 'none',
     }));
+    setPendingOKRs([
+      ...drafts.map(o => { const rep = reports.find(r => r.id === o.employee_id); return { ...o, employee_name: profiles.find(p => p.id === rep?.user_id)?.full_name || 'Unknown' }; }),
+      ...unsetPeople,
+    ]);
     setDirectReports(reports.map(r => {
       const mine = asg.filter(a => a.employee_id === r.id);
       return {
@@ -358,7 +364,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
         full_name: profiles.find(p => p.id === r.user_id)?.full_name || 'Unknown',
         department: (r.departments as any)?.name,
         designation: (r.designations as any)?.title,
-        pendingOKR: okrs.filter(o => o.employee_id === r.id).length,
+        pendingOKR: okrs.filter(o => o.employee_id === r.id && o.status === 'draft').length + (okrs.some(o => o.employee_id === r.id && o.status === 'set') || okrs.some(o => o.employee_id === r.id && o.status === 'draft') ? 0 : 1),
         totalLearning: mine.length,
         completedLearning: mine.filter(a => a.status === 'completed').length,
         overdue: mine.filter(a => a.due_date && new Date(a.due_date) < now && a.status !== 'completed').length,
@@ -458,15 +464,15 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
   const teamOverdue = directReports.reduce((n, r) => n + r.overdue, 0);
   const teamPct = teamTotal ? Math.round((teamDone / teamTotal) * 100) : 0;
   const sub = pendingOKRs.length
-    ? `${pendingOKRs.length} OKR${pendingOKRs.length === 1 ? '' : 's'} waiting for your review.`
-    : `${directReports.length} direct report${directReports.length === 1 ? '' : 's'}, nothing waiting for review.`;
+    ? `${pendingOKRs.length} OKR item${pendingOKRs.length === 1 ? '' : 's'} waiting on you (drafts to share, people without OKRs).`
+    : `${directReports.length} direct report${directReports.length === 1 ? '' : 's'}, everyone has OKRs set.`;
 
   return (
     <Page>
       <Greeting name={name} sub={sub} />
       <Strip stats={[
         { label: 'Direct reports', value: directReports.length, onClick: () => onNavigate?.('employees') },
-        { label: 'OKRs to review', value: pendingOKRs.length, tone: 'warn', onClick: () => onNavigate?.('okrs') },
+        { label: 'OKRs waiting on you', value: pendingOKRs.length, tone: 'warn', onClick: () => onNavigate?.('okrs') },
         { label: 'Team completion', value: `${teamPct}%`, hint: `${teamDone} of ${teamTotal}` },
         { label: 'Team overdue', value: teamOverdue, tone: 'danger' },
         { label: 'My learning', value: s.pending.length, hint: s.pending.length ? 'to finish' : 'all done', onClick: () => onNavigate?.('my-learning') },
@@ -484,7 +490,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
                       <th className="font-medium px-3.5 py-1.5">Name</th>
                       <th className="font-medium px-3.5 py-1.5">Learning</th>
                       <th className="font-medium px-3.5 py-1.5 w-20">Overdue</th>
-                      <th className="font-medium px-3.5 py-1.5 w-28">OKRs</th>
+                      <th className="font-medium px-3.5 py-1.5 w-32">OKRs</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -503,7 +509,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
                             </div>
                           </td>
                           <td className={`px-3.5 py-2 ${r.overdue ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{r.overdue}</td>
-                          <td className="px-3.5 py-2">{r.pendingOKR ? <span className="text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">{r.pendingOKR} to review</span> : <span className="text-gray-500">—</span>}</td>
+                          <td className="px-3.5 py-2">{r.pendingOKR ? <span className="text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">{r.pendingOKR} to set</span> : <span className="text-emerald-700 text-xs">Set</span>}</td>
                         </tr>
                       );
                     })}
@@ -513,7 +519,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
                   {directReports.map(r => (
                     <li key={r.id} className="px-3.5 py-2.5">
                       <p className="text-[13px] font-medium text-gray-900">{r.full_name}</p>
-                      <p className="text-xs text-gray-500">{r.completedLearning}/{r.totalLearning} done{r.overdue ? ` · ${r.overdue} overdue` : ''}{r.pendingOKR ? ` · ${r.pendingOKR} OKR to review` : ''}</p>
+                      <p className="text-xs text-gray-500">{r.completedLearning}/{r.totalLearning} done{r.overdue ? ` · ${r.overdue} overdue` : ''}{r.pendingOKR ? ` · ${r.pendingOKR} OKR to set` : ''}</p>
                     </li>
                   ))}
                 </ul>
@@ -521,9 +527,9 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
             )}
           </Panel>
 
-          <Panel title="OKRs waiting for review" count={pendingOKRs.length} action={{ label: 'Team OKRs', onClick: () => onNavigate?.('okrs') }}>
+          <Panel title="OKRs waiting on you" count={pendingOKRs.length} action={{ label: 'Team OKRs', onClick: () => onNavigate?.('okrs') }}>
             {pendingOKRs.length === 0 ? (
-              <Empty icon={Target} text="Nothing submitted for review" />
+              <Empty icon={Target} text="Everyone has OKRs set and shared" />
             ) : (
               <ul className="divide-y divide-gray-100">
                 {pendingOKRs.slice(0, 5).map(o => (
@@ -531,9 +537,9 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
                     <button onClick={() => onNavigate?.('okrs')} className="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition">
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] text-gray-900 truncate">{o.title}</span>
-                        <span className="block text-xs text-gray-500">{o.employee_name} · {o.period}</span>
+                        <span className="block text-xs text-gray-500">{o.employee_name}{o.period ? ` · ${o.period}` : ''}{o.status === 'draft' ? ' · draft, not shared' : ''}</span>
                       </span>
-                      <span className="text-xs text-gray-600">{o.overall_progress}%</span>
+                      <span className="text-xs text-gray-600">{o.status === 'none' ? 'Set one' : `${o.overall_progress}%`}</span>
                       <ChevronRight className="w-4 h-4 text-gray-300" />
                     </button>
                   </li>
