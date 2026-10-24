@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, UserCheck, Target, FolderOpen, Settings, Building, Briefcase,
-  Network, Award, BookOpen, TrendingUp, Shield, FileText, BookMarked, Megaphone, Link2,
+  Network, Award, BookOpen, Shield, FileText, BookMarked, Megaphone, Link2,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import type { UserRole } from './supabase';
@@ -34,41 +34,27 @@ export const DASHBOARD_ITEM: NavItem = {
   id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard, roles: ALL_ROLES, mobilePrimary: true,
 };
 
-/** Menus for staff roles when not in learner view. */
+/**
+ * Menus for staff roles when not in learner view, grouped by the stage of the
+ * employee lifecycle the operator is working in.
+ */
 export const STAFF_SECTIONS: NavSection[] = [
   {
-    id: 'platform',
-    label: 'Platform',
-    items: [
-      { id: 'organizations', label: 'Organizations', icon: Building, roles: ['platform_admin'], mobilePrimary: true },
-      { id: 'super-admin', label: 'Super Admin', icon: Shield, roles: ['platform_admin'], mobilePrimary: true },
-    ],
-  },
-  {
-    id: 'master',
-    label: 'Master data',
-    items: [
-      { id: 'employees', label: 'Employees', icon: Users, roles: ['admin', 'hr', 'manager'], mobilePrimary: true },
-      { id: 'departments', label: 'Departments', icon: Network, roles: ['admin', 'hr'] },
-      { id: 'designations', label: 'Designations', icon: Briefcase, roles: ['admin', 'hr'] },
-    ],
-  },
-  {
-    id: 'recruitment',
-    label: 'Recruitment',
+    id: 'hire',
+    label: 'Hire',
     items: [
       { id: 'candidates', label: 'Candidates', icon: UserCheck, roles: ['admin', 'hr'], mobilePrimary: true },
-      { id: 'assessments', label: 'Assessment Builder', shortLabel: 'Assessments', icon: Award, roles: ['admin', 'hr'] },
+      { id: 'assessments', label: 'Assessments', icon: Award, roles: ['admin', 'hr'] },
       { id: 'growth-profile-guide', label: 'Growth Profile Guide', shortLabel: 'Guide', icon: FileText, roles: ['admin', 'hr'] },
     ],
   },
   {
-    id: 'learning',
-    label: 'Learning & development',
+    id: 'learn',
+    label: 'Learn',
     items: [
-      { id: 'course-builder', label: 'Course Builder', shortLabel: 'Courses', icon: BookOpen, roles: ['admin', 'l_d_manager'], mobilePrimary: true },
-      { id: 'skill-builder', label: 'Skill Builder', shortLabel: 'Skills', icon: Award, roles: ['admin', 'l_d_manager'] },
-      { id: 'learning-path-builder', label: 'Learning Path Builder', shortLabel: 'Paths', icon: Network, roles: ['admin', 'l_d_manager'] },
+      { id: 'course-builder', label: 'Courses', icon: BookOpen, roles: ['admin', 'l_d_manager'], mobilePrimary: true },
+      { id: 'learning-path-builder', label: 'Learning Paths', shortLabel: 'Paths', icon: Network, roles: ['admin', 'l_d_manager'] },
+      { id: 'skill-builder', label: 'Skills', icon: Award, roles: ['admin', 'l_d_manager'] },
       { id: 'assign-learning', label: 'Assign Learning', shortLabel: 'Assign', icon: BookMarked, roles: ['admin', 'l_d_manager'], mobilePrimary: true },
       { id: 'course-access-requests', label: 'Access Requests', shortLabel: 'Requests', icon: FileText, roles: ['admin', 'l_d_manager'] },
       { id: 'courses', label: 'Course Catalog', shortLabel: 'Catalog', icon: BookMarked, roles: ['admin', 'l_d_manager'] },
@@ -76,28 +62,37 @@ export const STAFF_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: 'team',
-    label: 'Team',
+    id: 'perform',
+    label: 'Perform',
     items: [
-      { id: 'okrs', label: 'Team OKRs', shortLabel: 'OKRs', icon: Target, roles: ['manager'], mobilePrimary: true },
-      { id: 'reviews', label: 'Performance Reviews', shortLabel: 'Reviews', icon: TrendingUp, roles: ['manager', 'admin', 'hr'] },
+      { id: 'okrs', label: 'Team OKRs', shortLabel: 'OKRs', icon: Target, roles: ['manager', 'admin', 'hr'], mobilePrimary: true },
     ],
   },
   {
-    id: 'communications',
-    label: 'Communications',
+    id: 'people',
+    label: 'People',
+    items: [
+      { id: 'employees', label: 'People', icon: Users, roles: ['admin', 'hr', 'manager'], mobilePrimary: true },
+      { id: 'departments', label: 'Departments', icon: Network, roles: ['admin', 'hr'] },
+      { id: 'designations', label: 'Designations', icon: Briefcase, roles: ['admin', 'hr'] },
+    ],
+  },
+  {
+    id: 'setup',
+    label: 'Setup',
     items: [
       { id: 'messages', label: 'Announcements', icon: Megaphone, roles: ['admin', 'l_d_manager', 'hr'] },
       { id: 'pinned-resources', label: 'Quick Links', icon: Link2, roles: ['admin', 'l_d_manager'] },
       { id: 'repository', label: 'Repository', icon: FolderOpen, roles: ['admin', 'l_d_manager', 'hr'] },
+      { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin', 'hr'] },
     ],
   },
   {
-    id: 'admin',
-    label: 'Administration',
+    id: 'platform',
+    label: 'Platform',
     items: [
-      { id: 'user-management', label: 'User Management', shortLabel: 'Users', icon: Shield, roles: ['admin'] },
-      { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin', 'hr'] },
+      { id: 'organizations', label: 'Organizations', icon: Building, roles: ['platform_admin'], mobilePrimary: true },
+      { id: 'super-admin', label: 'Super Admin', icon: Shield, roles: ['platform_admin'], mobilePrimary: true },
     ],
   },
 ];
@@ -118,7 +113,6 @@ export const LEARNER_SECTIONS: NavSection[] = [
     label: 'Performance',
     items: [
       { id: 'okrs', label: 'OKRs', icon: Target, roles: ALL_ROLES },
-      { id: 'reviews', label: 'Reviews', icon: TrendingUp, roles: ALL_ROLES },
     ],
   },
   {
@@ -146,6 +140,8 @@ export function itemsFor(role: UserRole, learnerMode: boolean): NavItem[] {
 const EXTRA_TITLES: Record<string, string> = {
   'user-profile': 'My Profile',
   'dashboard': 'Dashboard',
+  'user-management': 'People',
+  'reviews': 'Reviews',
 };
 
 export function pageTitle(viewId: string): string {

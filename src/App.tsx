@@ -24,7 +24,6 @@ import MyLearning from './components/views/MyLearning';
 import AssignLearning from './components/views/AssignLearning';
 import Reviews from './components/views/Reviews';
 import Settings from './components/views/Settings';
-import UserManagement from './components/views/UserManagement';
 import GrowthProfileGuide from './components/views/GrowthProfileGuide';
 import SkillMapping from './components/views/SkillMapping';
 import CandidatePortal from './components/portal/CandidatePortal';
@@ -126,8 +125,8 @@ function AppContent() {
         return <Reviews />;
       case 'repository':
         return <Repository />;
-      case 'user-management':
-        return <UserManagement />;
+      case 'user-management': // folded into People; old links still land somewhere useful
+        return <Employees />;
       case 'settings':
         return <Settings />;
       case 'super-admin':
