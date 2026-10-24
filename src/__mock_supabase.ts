@@ -56,7 +56,7 @@ const FIXTURES: Record<string, any[]> = {
     { id: 'pr4', assignment_id: 'a1', employee_id: EMP, course_id: 'c3', module_id: 'm31', status: 'completed', progress_percentage: 100, completed_at: '2026-10-23', started_at: '2026-10-23' },
   ],
   ld_certifications: [],
-  learning_paths: [{ id: 'p1', title: 'Professional Listening', organization_id: ORG }],
+  learning_paths: [{ id: 'p1', title: 'Professional Listening', description: 'Five short parts on listening for what the customer is not saying.', path_type: 'skill_development', is_active: true, organization_id: ORG }],
   organizations: [{ id: ORG, name: 'Acme Motors', logo_url: null, status: 'active', plan: 'standard', settings: { brand: { primary: '#0F766E', on_primary: '#FFFFFF', nav: '#0B1F2A', accent: '#F59E0B' }, induction_days: 60, probation_months: 6 } }],
   course_access_requests: [{ id: 'ar1', organization_id: ORG, employee_id: 'user-2', status: 'pending', requested_at: '2026-10-22T08:00:00Z', learning_courses: { title: 'Aeris launch: product walkthrough' } }],
   departments: [{ id: 'd1', organization_id: ORG, name: 'Sales' }, { id: 'd2', organization_id: ORG, name: 'Service' }],
