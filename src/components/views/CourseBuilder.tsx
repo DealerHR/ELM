@@ -89,6 +89,8 @@ const BLANK_MODULE = {
 
 type Tab = 'courses' | 'certifications' | 'requests';
 
+interface CourseLearner { employee_id: string; full_name: string; via: string; due_date: string | null; status: 'assigned' | 'in_progress' | 'completed'; pct: number; completed_at: string | null; }
+
 export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?: Tab } = {}) {
   const { userProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
@@ -116,7 +118,8 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'course' | 'assessment'>('all');
   const [descExpanded, setDescExpanded] = useState(false);
-  const [courseStats, setCourseStats] = useState<{ assigned: number; completed: number; paths: string[] } | null>(null);
+  const [courseStats, setCourseStats] = useState<{ assigned: number; completed: number; paths: string[]; learners: CourseLearner[] } | null>(null);
+  const [showLearners, setShowLearners] = useState(false);
   // On phones the list and the detail are two screens; this says which one is showing.
   const [mobileDetail, setMobileDetail] = useState(false);
   const route = useRoute();
@@ -171,17 +174,43 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
   const loadCourseStats = async (courseId: string) => {
     setCourseStats(null);
     const [asg, prog, items] = await Promise.all([
-      supabase.from('employee_learning_assignments').select('employee_id, status').eq('course_id', courseId),
-      supabase.from('learning_progress').select('employee_id, status').eq('course_id', courseId).is('module_id', null),
-      supabase.from('learning_path_items').select('learning_paths(title)').eq('course_id', courseId),
+      supabase.from('employee_learning_assignments').select('id, employee_id, status, due_date, assigned_date, learning_path_id').eq('course_id', courseId),
+      supabase.from('learning_progress').select('assignment_id, employee_id, status, progress_percentage, completed_at').eq('course_id', courseId).is('module_id', null),
+      supabase.from('learning_path_items').select('path_id').eq('course_id', courseId),
     ]);
-    // A learner counts as assigned if the course was assigned directly or reached through a path.
-    const assignedIds = new Set<string>();
-    const completedIds = new Set<string>();
-    for (const a of (asg.data || []) as { employee_id: string; status: string }[]) { assignedIds.add(a.employee_id); if (a.status === 'completed') completedIds.add(a.employee_id); }
-    for (const p of (prog.data || []) as { employee_id: string; status: string }[]) { assignedIds.add(p.employee_id); if (p.status === 'completed') completedIds.add(p.employee_id); }
-    const paths = [...new Set((items.data || []).map((i: any) => i.learning_paths?.title).filter(Boolean))] as string[];
-    setCourseStats({ assigned: assignedIds.size, completed: completedIds.size, paths });
+    const pathIds = [...new Set(((items.data || []) as any[]).map(i => i.path_id).filter(Boolean))];
+    const [pathsRes, pathAsgRes] = await Promise.all([
+      pathIds.length ? supabase.from('learning_paths').select('id, title').in('id', pathIds) : Promise.resolve({ data: [] as any[] }),
+      pathIds.length ? supabase.from('employee_learning_assignments').select('id, employee_id, status, due_date, assigned_date, learning_path_id').in('learning_path_id', pathIds) : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const pathTitle = (id: string) => ((pathsRes.data || []) as any[]).find(p => p.id === id)?.title || 'a learning path';
+
+    // One row per learner: how they got the course, and how far they are with it.
+    const progByEmp = new Map<string, { status: string; pct: number; completed_at: string | null }>();
+    for (const p of (prog.data || []) as any[]) {
+      const cur = progByEmp.get(p.employee_id);
+      if (!cur || p.status === 'completed' || (cur.status !== 'completed' && p.progress_percentage > cur.pct)) progByEmp.set(p.employee_id, { status: p.status, pct: p.progress_percentage || 0, completed_at: p.completed_at });
+    }
+    const learnersMap = new Map<string, CourseLearner>();
+    const add = (a: any, via: string) => {
+      const pr = progByEmp.get(a.employee_id);
+      const done = a.status === 'completed' || pr?.status === 'completed';
+      const existing = learnersMap.get(a.employee_id);
+      const row: CourseLearner = { employee_id: a.employee_id, full_name: '', via, due_date: a.due_date, status: done ? 'completed' : (pr || a.status === 'in_progress') ? 'in_progress' : 'assigned', pct: done ? 100 : (pr?.pct || 0), completed_at: pr?.completed_at || null };
+      if (!existing || (existing.status !== 'completed' && row.status === 'completed')) learnersMap.set(a.employee_id, existing ? { ...row, via: existing.via === via ? via : `${existing.via}, ${via}` } : row);
+      else if (existing && !existing.via.includes(via)) existing.via += `, ${via}`;
+    };
+    for (const a of (asg.data || []) as any[]) add(a, 'Direct');
+    for (const a of (pathAsgRes.data || []) as any[]) add(a, pathTitle(a.learning_path_id));
+    const empIds = [...learnersMap.keys()];
+    if (empIds.length) {
+      const { data: emps } = await supabase.from('employees').select('id, user_id').in('id', empIds);
+      const userIds = ((emps || []) as any[]).map(e => e.user_id);
+      const { data: profiles } = userIds.length ? await supabase.from('user_profiles').select('id, full_name').in('id', userIds) : { data: [] as any[] };
+      for (const e of (emps || []) as any[]) { const l = learnersMap.get(e.id); if (l) l.full_name = ((profiles || []) as any[]).find(p => p.id === e.user_id)?.full_name || 'Unknown'; }
+    }
+    const learners = [...learnersMap.values()].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    setCourseStats({ assigned: learners.length, completed: learners.filter(l => l.status === 'completed').length, paths: ((pathsRes.data || []) as any[]).map(p => p.title), learners });
   };
 
   const loadModules = async (courseId: string) => {
@@ -520,8 +549,8 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
 
                 {/* Stats strip */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg">
-                  <div><p className="text-xs text-gray-500">Assigned</p><p className="text-sm font-semibold text-gray-900">{courseStats ? `${courseStats.assigned} learner${courseStats.assigned === 1 ? '' : 's'}` : '…'}</p></div>
-                  <div><p className="text-xs text-gray-500">Completed</p><p className="text-sm font-semibold text-gray-900">{courseStats ? `${courseStats.completed}${courseStats.assigned ? ` · ${Math.round((courseStats.completed / courseStats.assigned) * 100)}%` : ''}` : '…'}</p></div>
+                  <button onClick={() => courseStats?.assigned && setShowLearners(true)} className="text-left rounded-md -mx-1.5 px-1.5 hover:bg-gray-50 transition disabled:cursor-default" disabled={!courseStats?.assigned} title="See who is taking this course"><p className="text-xs text-gray-500">Assigned</p><p className={`text-sm font-semibold ${courseStats?.assigned ? 'text-blue-800 underline decoration-dotted underline-offset-2' : 'text-gray-900'}`}>{courseStats ? `${courseStats.assigned} learner${courseStats.assigned === 1 ? '' : 's'}` : '…'}</p></button>
+                  <button onClick={() => courseStats?.assigned && setShowLearners(true)} className="text-left rounded-md -mx-1.5 px-1.5 hover:bg-gray-50 transition disabled:cursor-default" disabled={!courseStats?.assigned}><p className="text-xs text-gray-500">Completed</p><p className="text-sm font-semibold text-gray-900">{courseStats ? `${courseStats.completed}${courseStats.assigned ? ` · ${Math.round((courseStats.completed / courseStats.assigned) * 100)}%` : ''}` : '…'}</p></button>
                   <div><p className="text-xs text-gray-500">Modules</p><p className="text-sm font-semibold text-gray-900">{modules.length} · {totalMinutes} min · {requiredCount} required</p></div>
                   <div className="min-w-0"><p className="text-xs text-gray-500">In learning paths</p><p className="text-sm font-semibold text-gray-900 truncate">{courseStats ? (courseStats.paths.length ? courseStats.paths.join(', ') : 'None') : '…'}</p></div>
                 </div>
@@ -640,6 +669,39 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {showLearners && selectedCourse && courseStats && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowLearners(false)}>
+          <div onClick={e => e.stopPropagation()} className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-100 flex-shrink-0">
+              <div className="min-w-0"><h3 className="text-sm font-semibold text-gray-900 truncate">Who is taking “{selectedCourse.title}”</h3><p className="text-xs text-gray-500">{courseStats.assigned} learner{courseStats.assigned === 1 ? '' : 's'} · {courseStats.completed} completed</p></div>
+              <div className="flex-1" />
+              <button onClick={() => setShowLearners(false)} className="w-9 h-9 -mr-2 flex items-center justify-center text-gray-500"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-xs text-gray-500 text-left"><th className="font-medium px-4 py-2">Learner</th><th className="font-medium px-4 py-2">Assigned via</th><th className="font-medium px-4 py-2 w-40">Progress</th><th className="font-medium px-4 py-2 w-28">Due</th></tr></thead>
+                <tbody>
+                  {courseStats.learners.map(l => (
+                    <tr key={l.employee_id} className="border-t border-gray-100">
+                      <td className="px-4 py-2"><button onClick={() => navigate('employees', l.employee_id)} className="text-gray-900 hover:underline text-left">{l.full_name}</button></td>
+                      <td className="px-4 py-2 text-gray-600">{l.via}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-20 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${l.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-600'}`} style={{ width: `${l.pct}%` }} /></div>
+                          <span className="text-xs text-gray-600">{l.status === 'completed' ? `Done${l.completed_at ? ` · ${new Date(l.completed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : l.status === 'in_progress' ? `${l.pct}%` : 'Not started'}</span>
+                        </div>
+                      </td>
+                      <td className={`px-4 py-2 text-xs ${l.due_date && l.status !== 'completed' && new Date(l.due_date) < new Date() ? 'text-red-700 font-medium' : 'text-gray-600'}`}>{l.due_date ? new Date(l.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-4 py-3 border-t border-gray-100 flex justify-end"><button onClick={() => { setShowLearners(false); navigate('assign-learning'); }} className="h-8 px-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-50">Assign to more people</button></div>
+          </div>
         </div>
       )}
 

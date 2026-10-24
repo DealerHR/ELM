@@ -118,12 +118,17 @@ export default function CoursePlayerPage({
   const [quizResult, setQuizResult] = useState<{ score: number; max: number; percentage: number } | null>(null);
 
   const quizScrollRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLButtonElement>(null);
+  // The curriculum list follows the module being viewed.
+  useEffect(() => { activeItemRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [currentIdx, curriculumOpen]);
 
   const mod = modules[currentIdx];
   const isVideo = mod?.content_type === 'video';
   const hasFile = Boolean(mod?.content_file_path);
   const hasLink = Boolean(mod?.content_url);
-  const isQuiz = mod?.content_type === 'quiz';
+  const [quizLoaded, setQuizLoaded] = useState(false);
+  // A quiz with no questions cannot block the course: it is treated like any other module.
+  const isQuiz = mod?.content_type === 'quiz' && !(quizLoaded && quizQuestions.length === 0);
   const isDone = mod ? completedIds.has(mod.id) : false;
   const completedCount = modules.filter(m => completedIds.has(m.id)).length;
   const progressPct = modules.length > 0 ? Math.round((completedCount / modules.length) * 100) : 0;
@@ -136,6 +141,7 @@ export default function CoursePlayerPage({
     setFileUrl(null);
     setFileError('');
     setQuizQuestions([]);
+    setQuizLoaded(false);
     setQuizAnswers({});
     setQuizResult(null);
     setJustMarked(false);
@@ -178,6 +184,7 @@ export default function CoursePlayerPage({
             : null,
         })) as QuizQuestion[];
         setQuizQuestions(qs);
+        setQuizLoaded(true);
 
         const existingResponses = (responsesRes as { data: { points_awarded: number; question_id: string }[] | null }).data;
         if (existingResponses && existingResponses.length > 0) {
@@ -321,6 +328,7 @@ export default function CoursePlayerPage({
           return (
             <button
               key={m.id}
+              ref={active ? activeItemRef : undefined}
               onClick={() => requestGoTo(idx)}
               className={`w-full text-left px-4 py-3 flex items-start gap-3 transition border-l-2 ${
                 active ? 'bg-yellow-400/10 border-yellow-400' : 'border-transparent hover:bg-gray-700/40'
@@ -394,8 +402,8 @@ export default function CoursePlayerPage({
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
               <ClipboardList className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-gray-300">No quiz questions</p>
-              <p className="text-xs text-gray-500 mt-1">This quiz has no questions yet.</p>
+              <p className="text-sm font-semibold text-gray-300">No quiz questions yet</p>
+              <p className="text-xs text-gray-500 mt-1">Your L&D team has not added questions. Use Next or Finish to move on; this module will count as done.</p>
             </div>
           </div>
         );

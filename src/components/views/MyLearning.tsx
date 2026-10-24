@@ -947,7 +947,7 @@ export default function MyLearning() {
     setSavingModuleId(moduleId);
     try {
       const now = new Date().toISOString();
-      const { error: insErr } = await supabase.from('learning_progress').upsert({
+      const { error: insErr } = await supabase.from('learning_progress').insert({
         assignment_id: assignmentId,
         employee_id: employeeId,
         course_id: courseId,
@@ -957,8 +957,9 @@ export default function MyLearning() {
         progress_percentage: 100,
         status: 'completed',
         attempts: 1,
-      }, { onConflict: 'assignment_id,module_id', ignoreDuplicates: false });
-      if (insErr && !/duplicate|unique/i.test(insErr.message)) throw insErr;
+      });
+      // 23505 = this module is already recorded for this assignment; anything else is a real failure.
+      if (insErr && insErr.code !== '23505') throw insErr;
 
       setModuleProgressMap(prev => ({ ...prev, [courseId]: new Set([...(prev[courseId] || []), moduleId]) }));
       await load();

@@ -92,7 +92,7 @@ export default function AssignLearning() {
           .from('employee_learning_assignments')
           .select(`
             id, employee_id, course_id, learning_path_id, assigned_date, due_date, status,
-            employees(full_name, designation),
+            employees(id, user_id, designations:designation_id(title)),
             learning_courses(title),
             learning_paths(title)
           `)
@@ -120,13 +120,21 @@ export default function AssignLearning() {
           .order('title'),
       ]);
 
-      setAssignments((assignmentsRes.data as Assignment[]) || []);
       const normalizedEmployees: Employee[] = ((employeesRes.data as any[]) || []).map(e => ({
         id: e.id,
         full_name: (e.user_profiles as any)?.full_name || '',
         designation: (e.designations as any)?.title || '',
       })).filter(e => e.full_name);
       setEmployees(normalizedEmployees);
+      if (assignmentsRes.error) throw assignmentsRes.error;
+      // Names live on user_profiles, not employees; attach them here.
+      const byEmp = new Map(normalizedEmployees.map(e => [e.id, e]));
+      setAssignments(((assignmentsRes.data as any[]) || []).map(a => ({
+        ...a,
+        employees: byEmp.get(a.employee_id)
+          ? { full_name: byEmp.get(a.employee_id)!.full_name, designation: byEmp.get(a.employee_id)!.designation }
+          : { full_name: '—', designation: (a.employees as any)?.designations?.title },
+      })) as Assignment[]);
       setCourses((coursesRes.data as Course[]) || []);
       setPaths((pathsRes.data as LearningPath[]) || []);
     } catch (err) {
