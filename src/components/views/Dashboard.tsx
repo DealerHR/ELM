@@ -84,9 +84,9 @@ function Strip({ stats }: { stats: Stat[] }) {
           const cls = 'px-4 py-3 text-left min-w-0 sm:flex-1 sm:basis-0 border-t border-l border-gray-100';
           const inner = (
             <>
-              <p className="text-[11px] text-gray-500 truncate">{s.label}</p>
+              <p className="text-xs text-gray-500 truncate">{s.label}</p>
               <p className={`text-xl font-semibold leading-tight mt-0.5 ${tone}`}>{s.value}</p>
-              {s.hint && <p className="text-[11px] text-gray-500 mt-0.5 truncate">{s.hint}</p>}
+              {s.hint && <p className="text-xs text-gray-500 mt-0.5 truncate">{s.hint}</p>}
             </>
           );
           return s.onClick ? (
@@ -104,7 +104,7 @@ function Panel({ title, count, action, children }: { title: string; count?: numb
   return (
     <section className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-3.5 h-10 border-b border-gray-100">
-        <h2 className="text-[13px] font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         {count !== undefined && <span className="text-xs text-gray-500">{count}</span>}
         <div className="flex-1" />
         {action && (
@@ -138,8 +138,8 @@ function Shortcuts({ items, onNavigate }: { items: { label: string; sub: string;
         >
           <a.icon className="w-4 h-4 text-gray-500 flex-shrink-0" strokeWidth={1.8} />
           <span className="min-w-0">
-            <span className="block text-[13px] font-medium text-gray-900 truncate">{a.label}</span>
-            <span className="block text-[11px] text-gray-500 truncate">{a.sub}</span>
+            <span className="block text-sm font-medium text-gray-900 truncate">{a.label}</span>
+            <span className="block text-xs text-gray-500 truncate">{a.sub}</span>
           </span>
         </button>
       ))}
@@ -160,10 +160,10 @@ function Announcements({ messages, unreadCount, markAsRead, onNavigate, limit = 
               <button onClick={() => !m.isRead && markAsRead(m.id)} className="w-full text-left px-3.5 py-2.5 flex items-start gap-2.5 hover:bg-gray-50 transition">
                 <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${m.isRead ? 'bg-transparent' : m.priority === 'urgent' ? 'bg-red-500' : m.priority === 'high' ? 'bg-amber-500' : 'bg-blue-500'}`} />
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-[13px] truncate ${m.isRead ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>{m.title}</span>
+                  <span className={`block text-sm truncate ${m.isRead ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>{m.title}</span>
                   <span className="block text-xs text-gray-500 truncate">{m.body}</span>
                 </span>
-                <span className="text-[11px] text-gray-400 flex-shrink-0">{new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">{new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
               </button>
             </li>
           ))}
@@ -184,7 +184,7 @@ function WorkQueue({ items, onNavigate }: { items: QueueItem[] | null; onNavigat
       {items.length === 0 ? (
         <div className="px-4 py-7 text-center">
           <Inbox className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
-          <p className="text-[13px] font-medium text-gray-800">You're all caught up</p>
+          <p className="text-sm font-medium text-gray-800">You're all caught up</p>
           <p className="text-xs text-gray-500">Nothing is waiting on you right now.</p>
         </div>
       ) : (
@@ -193,7 +193,7 @@ function WorkQueue({ items, onNavigate }: { items: QueueItem[] | null; onNavigat
             <li key={it.id} className="px-3.5 py-2.5 flex items-center gap-3">
               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot(it.tone)}`} />
               <span className="flex-1 min-w-0">
-                <span className="block text-[13px] text-gray-900 truncate">{it.title}</span>
+                <span className="block text-sm text-gray-900 truncate">{it.title}</span>
                 <span className="block text-xs text-gray-500 truncate">{it.detail}{it.when ? ` · ${it.when}` : ''}</span>
               </span>
               <button onClick={() => onNavigate?.(it.action.view)} className="h-7 px-2.5 rounded-md border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-50 transition flex-shrink-0">{it.action.label}</button>
@@ -223,7 +223,7 @@ function QuickLinks({ resources, canManage, onNavigate }: { resources: PinnedRes
                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="px-3.5 py-2.5 flex items-center gap-2.5 hover:bg-gray-50 transition">
                   <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" strokeWidth={1.8} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] text-gray-900 truncate">{r.title}</span>
+                    <span className="block text-sm text-gray-900 truncate">{r.title}</span>
                     {r.description && <span className="block text-xs text-gray-500 truncate">{r.description}</span>}
                   </span>
                   <ExternalLink className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
@@ -249,7 +249,7 @@ function AssignmentList({ items, onNavigate, emptyText }: { items: Assignment[];
             <button onClick={() => onNavigate?.('my-learning')} className="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition">
               {isPath ? <Network className="w-4 h-4 text-gray-400 flex-shrink-0" strokeWidth={1.8} /> : <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" strokeWidth={1.8} />}
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] text-gray-900 truncate">{a.learning_courses?.title || a.learning_paths?.title}</span>
+                <span className="block text-sm text-gray-900 truncate">{a.learning_courses?.title || a.learning_paths?.title}</span>
                 <span className="block text-xs text-gray-500">{isPath ? 'Learning path' : 'Course'}{a.status === 'in_progress' ? ' · In progress' : ''}</span>
               </span>
               <span className={`text-xs flex-shrink-0 ${due.tone}`}>{due.text}</span>
@@ -455,8 +455,8 @@ function ContinueCard({ item, onNavigate }: { item: Assignment; onNavigate?: (v:
     <button onClick={() => onNavigate?.('my-learning')} className="w-full text-left bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition">
       <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center flex-shrink-0"><Play className="w-4 h-4 ml-0.5" /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] text-gray-500">Continue where you left off</span>
-        <span className="block text-[13px] font-medium text-gray-900 truncate">{item.learning_courses?.title || item.learning_paths?.title}</span>
+        <span className="block text-xs text-gray-500">Continue where you left off</span>
+        <span className="block text-sm font-medium text-gray-900 truncate">{item.learning_courses?.title || item.learning_paths?.title}</span>
       </span>
       <span className={`text-xs hidden sm:block ${due.tone}`}>{due.text}</span>
       <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -530,9 +530,9 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
               <Empty icon={Users} text="No one reports to you yet" />
             ) : (
               <>
-                <table className="w-full text-[13px] hidden sm:table">
+                <table className="w-full text-sm hidden sm:table">
                   <thead>
-                    <tr className="text-[11px] text-gray-500 text-left">
+                    <tr className="text-xs text-gray-500 text-left">
                       <th className="font-medium px-3.5 py-1.5">Name</th>
                       <th className="font-medium px-3.5 py-1.5">Learning</th>
                       <th className="font-medium px-3.5 py-1.5 w-20">Overdue</th>
@@ -564,7 +564,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
                 <ul className="sm:hidden divide-y divide-gray-100">
                   {directReports.map(r => (
                     <li key={r.id} className="px-3.5 py-2.5">
-                      <p className="text-[13px] font-medium text-gray-900">{r.full_name}</p>
+                      <p className="text-sm font-medium text-gray-900">{r.full_name}</p>
                       <p className="text-xs text-gray-500">{r.completedLearning}/{r.totalLearning} done{r.overdue ? ` · ${r.overdue} overdue` : ''}{r.pendingOKR ? ` · ${r.pendingOKR} OKR to set` : ''}</p>
                     </li>
                   ))}

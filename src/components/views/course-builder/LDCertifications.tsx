@@ -161,7 +161,7 @@ export default function LDCertifications({ organizationId }: LDCertificationsPro
               {f === 'certified' && <CheckCircle2 className="w-3 h-3" />}
               {f.charAt(0).toUpperCase() + f.slice(1)}
               {f === 'pending' && pendingList.length > 0 && (
-                <span className="bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">{pendingList.length}</span>
+                <span className="bg-amber-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[11px] font-bold">{pendingList.length}</span>
               )}
             </button>
           ))}

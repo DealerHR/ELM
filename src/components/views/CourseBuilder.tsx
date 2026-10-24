@@ -338,7 +338,7 @@ export default function CourseBuilder() {
   const totalMinutes = modules.reduce((s, m) => s + (m.duration_minutes || 0), 0);
 
   const chip = (cls: string, text: string) => (
-    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>
+    <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>
   );
 
   const statusChip = (status: string) => {
@@ -359,21 +359,21 @@ export default function CourseBuilder() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 text-[13px] border-b-2 transition ${activeTab === tab.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+                className={`flex items-center gap-1.5 text-sm border-b-2 transition ${activeTab === tab.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
               >
                 <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.short}</span>
-                {tab.count !== null && <span className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{tab.count}</span>}
+                {tab.count !== null && <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{tab.count}</span>}
               </button>
             ))}
           </div>
-        ) : <span className="text-[13px] font-semibold text-gray-900">Courses & assessments</span>}
+        ) : <span className="text-sm font-semibold text-gray-900">Courses & assessments</span>}
         <div className="flex-1" />
         {activeTab === 'courses' && (
           <div className="flex items-center gap-2">
-            <button onClick={newCourseButton(true)} className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition text-[13px] font-medium">
+            <button onClick={newCourseButton(true)} className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
               <ClipboardList className="w-3.5 h-3.5" /> New assessment
             </button>
-            <button onClick={newCourseButton(false)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold">
+            <button onClick={newCourseButton(false)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold">
               <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New course</span><span className="sm:hidden">New</span>
             </button>
           </div>
@@ -426,7 +426,7 @@ export default function CourseBuilder() {
                     className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSelected ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-gray-900 truncate">{course.title}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5 truncate">
                         {course.is_assessment ? 'Assessment' : dm.label}{course.duration_hours > 0 ? ` · ${course.duration_hours} h` : ''}{course.category ? ` · ${course.category}` : ''}
                       </p>
@@ -454,7 +454,7 @@ export default function CourseBuilder() {
               </div>
             ) : (
               <div className="p-4 lg:p-6 space-y-4">
-                <button onClick={() => setMobileDetail(false)} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1">
+                <button onClick={() => setMobileDetail(false)} className="lg:hidden inline-flex items-center gap-1 text-sm text-gray-600 -mt-1">
                   <ChevronLeft className="w-4 h-4" /> All courses
                 </button>
 
@@ -477,7 +477,7 @@ export default function CourseBuilder() {
                     </p>
                     {selectedCourse.description && (
                       <div className="mt-2 max-w-3xl">
-                        <p className={`text-[13px] text-gray-700 leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{selectedCourse.description}</p>
+                        <p className={`text-sm text-gray-700 leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>{selectedCourse.description}</p>
                         {selectedCourse.description.length > 140 && (
                           <button onClick={() => setDescExpanded(e => !e)} className="text-xs text-blue-800 font-medium mt-0.5 hover:underline">
                             {descExpanded ? 'Show less' : 'Show more'}
@@ -488,11 +488,11 @@ export default function CourseBuilder() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                     {selectedCourse.status !== 'published' ? (
-                      <button onClick={() => handleStatusChange(selectedCourse, 'published')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[13px] font-semibold hover:bg-emerald-700 transition">Publish</button>
+                      <button onClick={() => handleStatusChange(selectedCourse, 'published')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition">Publish</button>
                     ) : (
-                      <button onClick={() => handleStatusChange(selectedCourse, 'draft')} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">Unpublish</button>
+                      <button onClick={() => handleStatusChange(selectedCourse, 'draft')} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition">Unpublish</button>
                     )}
-                    <button onClick={() => handleEditCourse(selectedCourse)} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">Edit</button>
+                    <button onClick={() => handleEditCourse(selectedCourse)} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition">Edit</button>
                     {selectedCourse.status !== 'archived' && (
                       <button onClick={() => handleStatusChange(selectedCourse, 'archived')} title="Archive" className="h-8 w-8 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition flex items-center justify-center"><Archive className="w-3.5 h-3.5" /></button>
                     )}
@@ -502,10 +502,10 @@ export default function CourseBuilder() {
 
                 {/* Stats strip */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg">
-                  <div><p className="text-[11px] text-gray-500">Assigned</p><p className="text-[13px] font-semibold text-gray-900">{courseStats ? `${courseStats.assigned} learner${courseStats.assigned === 1 ? '' : 's'}` : '…'}</p></div>
-                  <div><p className="text-[11px] text-gray-500">Completed</p><p className="text-[13px] font-semibold text-gray-900">{courseStats ? `${courseStats.completed}${courseStats.assigned ? ` · ${Math.round((courseStats.completed / courseStats.assigned) * 100)}%` : ''}` : '…'}</p></div>
-                  <div><p className="text-[11px] text-gray-500">Modules</p><p className="text-[13px] font-semibold text-gray-900">{modules.length} · {totalMinutes} min · {requiredCount} required</p></div>
-                  <div className="min-w-0"><p className="text-[11px] text-gray-500">In learning paths</p><p className="text-[13px] font-semibold text-gray-900 truncate">{courseStats ? (courseStats.paths.length ? courseStats.paths.join(', ') : 'None') : '…'}</p></div>
+                  <div><p className="text-xs text-gray-500">Assigned</p><p className="text-sm font-semibold text-gray-900">{courseStats ? `${courseStats.assigned} learner${courseStats.assigned === 1 ? '' : 's'}` : '…'}</p></div>
+                  <div><p className="text-xs text-gray-500">Completed</p><p className="text-sm font-semibold text-gray-900">{courseStats ? `${courseStats.completed}${courseStats.assigned ? ` · ${Math.round((courseStats.completed / courseStats.assigned) * 100)}%` : ''}` : '…'}</p></div>
+                  <div><p className="text-xs text-gray-500">Modules</p><p className="text-sm font-semibold text-gray-900">{modules.length} · {totalMinutes} min · {requiredCount} required</p></div>
+                  <div className="min-w-0"><p className="text-xs text-gray-500">In learning paths</p><p className="text-sm font-semibold text-gray-900 truncate">{courseStats ? (courseStats.paths.length ? courseStats.paths.join(', ') : 'None') : '…'}</p></div>
                 </div>
 
                 {(selectedCourse.delivery_type === 'classroom' || selectedCourse.delivery_type === 'on_job') && !selectedCourse.is_assessment && (
@@ -521,12 +521,12 @@ export default function CourseBuilder() {
                 {/* Modules table */}
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-200">
-                    <h3 className="text-[13px] font-semibold text-gray-900">{selectedCourse.is_assessment ? 'Assessment modules' : 'Modules'}</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">{selectedCourse.is_assessment ? 'Assessment modules' : 'Modules'}</h3>
                     <span className="text-xs text-gray-500">{modules.length}</span>
                     <div className="flex-1" />
                     <button
                       onClick={() => { setEditingModule(null); setModuleForm({ ...BLANK_MODULE, content_type: selectedCourse.is_assessment ? 'quiz' : 'video' }); setUploadFile(null); setShowModuleForm(true); }}
-                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"
+                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add module
                     </button>
@@ -542,9 +542,9 @@ export default function CourseBuilder() {
                     <>
                       {/* Desktop table */}
                       <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-[13px]">
+                        <table className="w-full text-sm">
                           <thead>
-                            <tr className="text-[11px] text-gray-500 text-left">
+                            <tr className="text-xs text-gray-500 text-left">
                               <th className="font-medium px-3.5 py-2 w-8">#</th>
                               <th className="font-medium px-3.5 py-2">Module</th>
                               <th className="font-medium px-3.5 py-2 w-28">Type</th>
@@ -597,7 +597,7 @@ export default function CourseBuilder() {
                               <div className="flex items-start gap-3">
                                 <span className="text-xs text-gray-500 w-4 pt-0.5">{index + 1}</span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-medium text-gray-900">{module.title}</p>
+                                  <p className="text-sm font-medium text-gray-900">{module.title}</p>
                                   <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                     <Icon className={`w-3.5 h-3.5 ${isQuiz ? 'text-violet-600' : 'text-gray-400'}`} />
                                     <span className="capitalize">{module.content_type.replace('_', ' ')}</span> · {module.duration_minutes} min
@@ -690,7 +690,7 @@ export default function CourseBuilder() {
                         <meta.icon className={`w-5 h-5 ${courseForm.delivery_type === key ? 'text-gray-900' : 'text-gray-400'}`} />
                         <div>
                           <p className="text-xs font-semibold text-gray-800">{meta.label}</p>
-                          <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{meta.description}</p>
+                          <p className="text-[11px] text-gray-400 leading-tight mt-0.5">{meta.description}</p>
                         </div>
                       </button>
                     ))}

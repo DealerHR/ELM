@@ -159,7 +159,7 @@ export default function ComposeModal({ onClose, onSent }: ComposeModalProps) {
                 <Megaphone className="w-4 h-4 flex-shrink-0" />
                 <div className="text-left">
                   <p className="text-xs font-bold">Public</p>
-                  <p className="text-[10px] font-normal opacity-70">All employees</p>
+                  <p className="text-[11px] font-normal opacity-70">All employees</p>
                 </div>
               </button>
               <button
@@ -174,7 +174,7 @@ export default function ComposeModal({ onClose, onSent }: ComposeModalProps) {
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <div className="text-left">
                   <p className="text-xs font-bold">Targeted</p>
-                  <p className="text-[10px] font-normal opacity-70">Select recipients</p>
+                  <p className="text-[11px] font-normal opacity-70">Select recipients</p>
                 </div>
               </button>
             </div>
@@ -231,7 +231,7 @@ export default function ComposeModal({ onClose, onSent }: ComposeModalProps) {
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition"
                         >
                           <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-[10px] font-bold text-gray-600">
+                            <span className="text-[11px] font-bold text-gray-600">
                               {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                             </span>
                           </div>

@@ -2696,7 +2696,7 @@ function DetailedResponsesView({ data, loading }: { data: DetailedResponses | nu
                                 )}
                                 <div className="flex items-center gap-1 ml-auto">
                                   {[1,2,3,4,5].map(n => (
-                                    <div key={n} className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    <div key={n} className={`w-4 h-4 rounded-full flex items-center justify-center text-[11px] font-bold ${
                                       effective === n
                                         ? n >= 4 ? 'bg-emerald-500 text-white' : n === 3 ? 'bg-amber-400 text-white' : 'bg-red-400 text-white'
                                         : 'bg-gray-100 text-gray-400'

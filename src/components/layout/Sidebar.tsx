@@ -34,7 +34,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
         }`}
       >
         <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
-        <span className="text-[13px] font-medium whitespace-nowrap overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <span className="text-sm font-medium whitespace-nowrap overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           {item.label}
         </span>
       </button>
@@ -43,15 +43,15 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
 
   return (
     <aside
-      className="group hidden lg:flex flex-col flex-shrink-0 h-screen bg-stratefix-black text-white w-14 hover:w-56 transition-[width] duration-200 ease-out overflow-hidden z-40"
+      className="group hidden lg:flex flex-col flex-shrink-0 h-screen bg-stratefix-black text-white w-14 hover:w-64 transition-[width] duration-200 ease-out overflow-hidden z-40"
       aria-label="Main navigation"
     >
       {/* Brand */}
       <div className="h-12 flex items-center gap-3 px-3 flex-shrink-0">
         <div className="w-8 h-8 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center text-xs font-bold flex-shrink-0">S</div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap overflow-hidden">
-          <p className="text-[13px] font-semibold leading-tight">ELM Platform</p>
-          <p className="text-[11px] text-stratefix-yellow leading-tight">Stratefix</p>
+          <p className="text-sm font-semibold leading-tight">ELM Platform</p>
+          <p className="text-xs text-stratefix-yellow leading-tight">Stratefix</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
         {sections.map(section => (
           <div key={section.id} className="pt-2">
             <div className="h-5 flex items-center px-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                 {section.label}
               </span>
               <span className="w-6 h-px bg-white/15 group-hover:hidden" aria-hidden="true" />
@@ -82,7 +82,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
             }`}
           >
             <ArrowLeftRight className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
-            <span className="text-[13px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">
               {learnerMode ? 'Back to admin view' : 'Learner view'}
             </span>
           </button>
@@ -95,11 +95,11 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
           {userProfile?.avatar_url ? (
             <img src={userProfile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <span className="w-7 h-7 rounded-full bg-stratefix-yellow text-stratefix-black text-[11px] font-bold flex items-center justify-center flex-shrink-0">{initials}</span>
+            <span className="w-7 h-7 rounded-full bg-stratefix-yellow text-stratefix-black text-xs font-bold flex items-center justify-center flex-shrink-0">{initials}</span>
           )}
           <span className="min-w-0 text-left opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-            <span className="block text-[13px] font-medium text-white truncate">{userProfile?.full_name}</span>
-            <span className="block text-[11px] text-gray-400 capitalize truncate">{learnerMode && !isEmployee ? 'Learner view' : role.replace(/_/g, ' ')}</span>
+            <span className="block text-sm font-medium text-white truncate">{userProfile?.full_name}</span>
+            <span className="block text-xs text-gray-400 capitalize truncate">{learnerMode && !isEmployee ? 'Learner view' : role.replace(/_/g, ' ')}</span>
           </span>
         </button>
         <button
@@ -108,7 +108,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
           className="w-full h-10 flex items-center gap-3 rounded-lg px-2 text-gray-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
         >
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
-          <span className="text-[13px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">Sign out</span>
+          <span className="text-sm font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150">Sign out</span>
         </button>
       </div>
     </aside>

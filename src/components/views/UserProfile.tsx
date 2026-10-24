@@ -224,7 +224,7 @@ export default function UserProfile() {
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-gray-400 mt-2">JPG, PNG or WebP. Max 5MB.</p>
+            <p className="text-[11px] text-gray-400 mt-2">JPG, PNG or WebP. Max 5MB.</p>
           </div>
 
           {/* Account info */}
@@ -234,14 +234,14 @@ export default function UserProfile() {
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] text-gray-400">Email</p>
+                  <p className="text-[11px] text-gray-400">Email</p>
                   <p className="text-xs font-semibold text-gray-700 break-all">{userProfile?.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
                 <Shield className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] text-gray-400">Role</p>
+                  <p className="text-[11px] text-gray-400">Role</p>
                   <p className="text-xs font-semibold text-gray-700">{roleLabels[userProfile?.role || 'employee']}</p>
                 </div>
               </div>
@@ -249,7 +249,7 @@ export default function UserProfile() {
                 <div className="flex items-center gap-2.5">
                   <Building className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-gray-400">Organization</p>
+                    <p className="text-[11px] text-gray-400">Organization</p>
                     <p className="text-xs font-semibold text-gray-700">Assigned</p>
                   </div>
                 </div>
@@ -294,7 +294,7 @@ export default function UserProfile() {
                     className="w-full pl-10 pr-3.5 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-400 cursor-not-allowed"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Email cannot be changed. Contact your administrator.</p>
+                <p className="text-[11px] text-gray-400 mt-1">Email cannot be changed. Contact your administrator.</p>
               </div>
 
               <div>

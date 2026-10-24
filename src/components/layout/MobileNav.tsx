@@ -42,7 +42,7 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
         <span className={`w-10 h-6 rounded-full flex items-center justify-center ${active ? 'bg-stratefix-yellow' : ''}`}>
           <Icon className="w-5 h-5" strokeWidth={active ? 2.2 : 1.8} />
         </span>
-        <span className={`text-[10px] leading-tight truncate max-w-full ${active ? 'font-semibold' : 'font-medium'}`}>{item.shortLabel || item.label}</span>
+        <span className={`text-[11px] leading-tight truncate max-w-full ${active ? 'font-semibold' : 'font-medium'}`}>{item.shortLabel || item.label}</span>
       </button>
     );
   };
@@ -62,7 +62,7 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
           <span className={`w-10 h-6 rounded-full flex items-center justify-center ${activeInMore ? 'bg-stratefix-yellow' : ''}`}>
             <MoreHorizontal className="w-5 h-5" strokeWidth={activeInMore ? 2.2 : 1.8} />
           </span>
-          <span className={`text-[10px] leading-tight ${activeInMore ? 'font-semibold' : 'font-medium'}`}>More</span>
+          <span className={`text-[11px] leading-tight ${activeInMore ? 'font-semibold' : 'font-medium'}`}>More</span>
         </button>
       </nav>
 
@@ -83,7 +83,7 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
                 if (rest.length === 0) return null;
                 return (
                   <div key={section.id} className="mb-2">
-                    <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{section.label}</p>
+                    <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">{section.label}</p>
                     {rest.map(item => {
                       const Icon = item.icon;
                       const active = activeView === item.id;

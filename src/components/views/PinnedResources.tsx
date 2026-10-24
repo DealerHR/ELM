@@ -179,7 +179,7 @@ export default function PinnedResources() {
                         }`}
                       >
                         <Icon className={`w-4 h-4 ${form.icon === opt.value ? 'text-emerald-600' : 'text-gray-500'}`} />
-                        <span className={`text-[10px] font-medium ${form.icon === opt.value ? 'text-emerald-700' : 'text-gray-500'}`}>
+                        <span className={`text-[11px] font-medium ${form.icon === opt.value ? 'text-emerald-700' : 'text-gray-500'}`}>
                           {opt.label}
                         </span>
                       </button>

@@ -407,7 +407,7 @@ function FirstDaysPanel({ employeeId }: { employeeId: string }) {
     <section className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
         <div className="flex-1 min-w-0">
-          <h2 className="text-[13px] font-semibold text-gray-900">Your first {total} days</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Your first {total} days</h2>
           <p className="text-xs text-gray-500 truncate">
             {journey.status === 'not_started' ? `Starts ${fmt(journey.start_date)}` : `Day ${Math.min(dayNo, total)} of ${total}`}
             {journey.induction_templates?.title ? ` · ${journey.induction_templates.title}` : ''}
@@ -419,7 +419,7 @@ function FirstDaysPanel({ employeeId }: { employeeId: string }) {
           <span className="text-xs text-gray-600 w-8 text-right">{journey.completion_percentage}%</span>
         </div>
       </div>
-      {journey.induction_templates?.description && <p className="px-4 pt-3 text-[13px] text-gray-700">{journey.induction_templates.description}</p>}
+      {journey.induction_templates?.description && <p className="px-4 pt-3 text-sm text-gray-700">{journey.induction_templates.description}</p>}
       {mine.length > 0 && (
         <ul className="divide-y divide-gray-100">
           {shown.map(t => {
@@ -429,7 +429,7 @@ function FirstDaysPanel({ employeeId }: { employeeId: string }) {
                 <button onClick={() => toggle(t)} disabled={busy === t.id} className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition">
                   {t.status === 'pending' ? <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" /> : <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-[13px] ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
+                    <span className={`block text-sm ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
                     {t.description && t.status === 'pending' && <span className="block text-xs text-gray-500 truncate">{t.description}</span>}
                   </span>
                   {t.due_date && <span className={`text-xs flex-shrink-0 ${late ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{late ? 'Overdue · ' : 'By '}{fmt(t.due_date)}</span>}
@@ -462,7 +462,7 @@ const STATUS_CHIP: Record<RowStatus, { label: string; cls: string }> = {
 
 function StatusChip({ status }: { status: RowStatus }) {
   const c = STATUS_CHIP[status];
-  return <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${c.cls}`}>{c.label}</span>;
+  return <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${c.cls}`}>{c.label}</span>;
 }
 
 function ProgressBar({ pct, className = '' }: { pct: number; className?: string }) {
@@ -474,7 +474,7 @@ function ProgressBar({ pct, className = '' }: { pct: number; className?: string 
 }
 
 function ActionButton({ kind, children, onClick, disabled }: { kind: 'primary' | 'secondary' | 'link'; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  const base = 'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold transition disabled:opacity-50 whitespace-nowrap';
+  const base = 'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-semibold transition disabled:opacity-50 whitespace-nowrap';
   const cls = kind === 'primary'
     ? 'bg-stratefix-yellow text-stratefix-black hover:bg-yellow-400'
     : kind === 'secondary'
@@ -571,7 +571,7 @@ function CourseRow({ assignment, progress, isCertified, modules, completedModule
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-[13px] sm:text-sm font-semibold text-gray-900 leading-tight">{course.title}</p>
+          <p className="text-sm sm:text-sm font-semibold text-gray-900 leading-tight">{course.title}</p>
           <StatusChip status={st.status} />
         </div>
         <p className={`text-xs mt-0.5 ${overdue ? 'text-red-600' : 'text-gray-500'}`}>{meta}</p>
@@ -629,8 +629,8 @@ function PathRow({ assignment, pathItems, progress, certifiedCourseIds, complete
         <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center flex-shrink-0"><Layers className="w-4 h-4" /></div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[13px] sm:text-sm font-semibold text-gray-900 leading-tight">{path.title}</p>
-            <span className="text-[11px] text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5">Path</span>
+            <p className="text-sm sm:text-sm font-semibold text-gray-900 leading-tight">{path.title}</p>
+            <span className="text-xs text-indigo-700 bg-indigo-50 rounded-full px-2 py-0.5">Path</span>
             <StatusChip status={pathStatus} />
           </div>
           <p className={`text-xs mt-0.5 ${overdue ? 'text-red-600' : 'text-gray-500'}`}>
@@ -665,7 +665,7 @@ function PathRow({ assignment, pathItems, progress, certifiedCourseIds, complete
                 ? <span className="w-5 h-5 rounded-full border-2 border-stratefix-yellow bg-white" />
                 : st.status === 'locked'
                   ? <span className="w-5 h-5 rounded-full border border-gray-200 bg-gray-50 text-gray-400 flex items-center justify-center"><Lock className="w-2.5 h-2.5" /></span>
-                  : <span className="w-5 h-5 rounded-full border border-gray-300 text-gray-500 text-[10px] font-semibold flex items-center justify-center">{idx + 1}</span>;
+                  : <span className="w-5 h-5 rounded-full border border-gray-300 text-gray-500 text-[11px] font-semibold flex items-center justify-center">{idx + 1}</span>;
 
             const action = (() => {
               if (st.status === 'locked') {
@@ -688,7 +688,7 @@ function PathRow({ assignment, pathItems, progress, certifiedCourseIds, complete
               <li key={item.id} className={`flex items-center gap-3 pl-5 pr-3 sm:pl-[52px] sm:pr-4 py-2.5 border-t border-gray-50 first:border-t-0 ${current ? 'bg-yellow-50/60' : ''} ${st.status === 'locked' ? 'opacity-70' : ''}`}>
                 <div className="flex-shrink-0">{marker}</div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[13px] leading-tight ${st.status === 'completed' ? 'text-gray-500' : current ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{course.title}</p>
+                  <p className={`text-sm leading-tight ${st.status === 'completed' ? 'text-gray-500' : current ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{course.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {[
                       st.status === 'completed' && prog?.completed_at ? `Done · ${new Date(prog.completed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : null,
@@ -727,9 +727,9 @@ function ContinueCard({ target, onOpen, onStart }: { target: ContinueTarget; onO
   return (
     <section aria-label={target.started ? 'Continue learning' : 'Start learning'} className="bg-stratefix-black text-white rounded-xl px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row sm:items-center gap-4">
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold tracking-wider text-stratefix-yellow">{target.started ? 'CONTINUE WHERE YOU LEFT OFF' : 'START HERE'}</p>
+        <p className="text-xs font-semibold tracking-wider text-stratefix-yellow">{target.started ? 'CONTINUE WHERE YOU LEFT OFF' : 'START HERE'}</p>
         <p className="text-base sm:text-lg font-semibold mt-1 leading-snug">{target.courseTitle}</p>
-        <p className="text-xs sm:text-[13px] text-gray-400 mt-1">
+        <p className="text-xs sm:text-sm text-gray-400 mt-1">
           {target.context}
           {target.modules.length > 0 ? ` · module ${Math.min(target.doneCount + 1, target.modules.length)} of ${target.modules.length}` : ''}
           {remaining > 0 ? ` · about ${remaining} min left` : ''}
@@ -889,7 +889,8 @@ export default function MyLearning() {
         status: 'in_progress',
         attempts: 1,
       });
-      if (error) throw error;
+      // A course row may already exist (opened before, or created by a module); that is fine.
+      if (error && !/duplicate|unique/i.test(error.message)) throw error;
       await supabase.from('employee_learning_assignments').update({ status: 'in_progress' }).eq('id', assignmentId);
       await load();
     } catch (e: any) {
@@ -925,81 +926,30 @@ export default function MyLearning() {
     }
   };
 
+  // Records a module as done. The database works out the course row, the
+  // course percentage and the assignment status from module rows (see the
+  // course_progress_server_side migration), so this only writes one row and
+  // reloads.
   const handleModuleComplete = async (moduleId: string, courseId: string, assignmentId: string) => {
     if (!employeeId) return;
     setSavingModuleId(moduleId);
     try {
-      await supabase.from('learning_progress').insert({
+      const now = new Date().toISOString();
+      const { error: insErr } = await supabase.from('learning_progress').upsert({
         assignment_id: assignmentId,
         employee_id: employeeId,
         course_id: courseId,
         module_id: moduleId,
-        started_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
+        started_at: now,
+        completed_at: now,
         progress_percentage: 100,
         status: 'completed',
         attempts: 1,
-      });
+      }, { onConflict: 'assignment_id,module_id', ignoreDuplicates: false });
+      if (insErr && !/duplicate|unique/i.test(insErr.message)) throw insErr;
 
-      const updatedMM = { ...moduleProgressMap };
-      if (!updatedMM[courseId]) updatedMM[courseId] = new Set();
-      updatedMM[courseId] = new Set([...updatedMM[courseId], moduleId]);
-      setModuleProgressMap(updatedMM);
-
-      const mods = courseModulesMap[courseId] || [];
-      // Complete when every mandatory module is done, or every module if none is marked mandatory.
-      const allRequiredDone = isCourseComplete(mods, updatedMM[courseId] || new Set());
-      const totalDone = updatedMM[courseId]?.size || 0;
-      const pct = allRequiredDone ? 100 : (mods.length > 0 ? Math.round((totalDone / mods.length) * 100) : 0);
-      const now = new Date().toISOString();
-
-      // The course-level progress row may not exist if the learner opened the
-      // player without pressing Start first. Create it so progress is recorded.
-      let courseProg = progressMap[courseId];
-      if (!courseProg) {
-        const { data: created } = await supabase.from('learning_progress').insert({
-          assignment_id: assignmentId,
-          employee_id: employeeId,
-          course_id: courseId,
-          module_id: null,
-          started_at: now,
-          progress_percentage: pct,
-          status: allRequiredDone ? 'completed' : 'in_progress',
-          completed_at: allRequiredDone ? now : null,
-          attempts: 1,
-        }).select().single();
-        if (created) {
-          courseProg = created;
-          setProgressMap(prev => ({ ...prev, [courseId]: created }));
-        }
-      } else {
-        setProgressMap(prev => ({
-          ...prev,
-          [courseId]: { ...prev[courseId], status: allRequiredDone ? 'completed' : 'in_progress', progress_percentage: pct },
-        }));
-        await supabase.from('learning_progress')
-          .update(allRequiredDone
-            ? { status: 'completed', progress_percentage: 100, completed_at: now }
-            : { status: 'in_progress', progress_percentage: pct })
-          .eq('id', courseProg.id);
-      }
-
-      if (allRequiredDone) {
-        const asgn = assignments.find(a => a.id === assignmentId);
-        if (asgn?.learning_path_id) {
-          // A path assignment completes only when every course in the path is done.
-          const items = pathItemsMap[asgn.learning_path_id] || [];
-          const otherDone = items
-            .filter(it => it.course_id !== courseId)
-            .every(it => progressMap[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id));
-          if (otherDone) {
-            await supabase.from('employee_learning_assignments').update({ status: 'completed' }).eq('id', assignmentId);
-          }
-        } else {
-          await supabase.from('employee_learning_assignments').update({ status: 'completed' }).eq('id', assignmentId);
-        }
-        await load();
-      }
+      setModuleProgressMap(prev => ({ ...prev, [courseId]: new Set([...(prev[courseId] || []), moduleId]) }));
+      await load();
     } catch (e: any) {
       setError('Failed to mark module complete: ' + e.message);
     } finally {
@@ -1203,7 +1153,7 @@ export default function MyLearning() {
             const days = Math.ceil((due.getTime() - Date.now()) / 86400000);
             const title = a.learning_courses?.title || a.learning_paths?.title || 'Assignment';
             return (
-              <div key={a.id} className="flex items-center gap-2 text-[13px] text-orange-900">
+              <div key={a.id} className="flex items-center gap-2 text-sm text-orange-900">
                 <Clock className="w-4 h-4 flex-shrink-0 text-orange-700" />
                 <span className="min-w-0 truncate"><strong className="font-semibold">{overdue ? 'Overdue' : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`}:</strong> {title}</span>
               </div>

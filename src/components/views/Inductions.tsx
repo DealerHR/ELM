@@ -36,9 +36,9 @@ interface Lookup { id: string; name: string; }
 const OWNER_LABEL: Record<Owner, string> = { employee: 'Joiner', manager: 'Manager', hr: 'HR' };
 const fmt = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
 const daysBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
-const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
-const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1';
-const chip = (cls: string, text: string) => <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
+const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1';
+const chip = (cls: string, text: string) => <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
 
 const STATUS_CHIP: Record<string, { cls: string; label: string }> = {
   not_started: { cls: 'bg-blue-50 text-blue-800', label: 'Starts soon' },
@@ -102,16 +102,16 @@ export default function Inductions() {
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 h-11 flex items-center gap-3">
         <div className="flex items-stretch gap-5 h-full">
           {([{ id: 'joiners', label: 'Joiners', count: openJourneys.length }, { id: 'templates', label: 'Templates', count: templates.length }] as const).map(t => (
-            <button key={t.id} onClick={() => { setTab(t.id); setMobileDetail(false); }} className={`flex items-center gap-1.5 text-[13px] border-b-2 transition ${tab === t.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-              {t.label}<span className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{t.count}</span>
+            <button key={t.id} onClick={() => { setTab(t.id); setMobileDetail(false); }} className={`flex items-center gap-1.5 text-sm border-b-2 transition ${tab === t.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+              {t.label}<span className="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{t.count}</span>
             </button>
           ))}
         </div>
         <div className="flex-1" />
         {tab === 'joiners' ? (
-          <button onClick={() => setShowStart(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"><Plus className="w-3.5 h-3.5" /> Start induction</button>
+          <button onClick={() => setShowStart(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> Start induction</button>
         ) : (
-          <button onClick={() => setShowNewTemplate(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"><Plus className="w-3.5 h-3.5" /> New template</button>
+          <button onClick={() => setShowNewTemplate(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New template</button>
         )}
       </div>
 
@@ -137,7 +137,7 @@ export default function Inductions() {
               return (
                 <button key={j.id} onClick={() => { setSelectedJourney(j.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-gray-900 truncate">{j.full_name}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{j.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{j.employees?.designations?.title || j.induction_templates?.title || 'Induction'} · {j.status === 'completed' ? `Done ${fmt(j.actual_end_date)}` : j.status === 'not_started' ? `Starts ${fmt(j.start_date)}` : `Day ${day} of ${total}`}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -152,7 +152,7 @@ export default function Inductions() {
               return (
                 <button key={t.id} onClick={() => { setSelectedTemplate(t.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-medium truncate ${t.is_active ? 'text-gray-900' : 'text-gray-400'}`}>{t.title}</p>
+                    <p className={`text-sm font-medium truncate ${t.is_active ? 'text-gray-900' : 'text-gray-400'}`}>{t.title}</p>
                     <p className="text-xs text-gray-500 truncate">{t.designations?.title || 'All designations'} · {t.duration_days} days{t.learning_paths?.title ? ` · ${t.learning_paths.title}` : ''}</p>
                   </div>
                   {!t.is_active && chip('bg-gray-100 text-gray-500', 'Inactive')}
@@ -248,7 +248,7 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
-      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All joiners</button>
+      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-sm text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All joiners</button>
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -259,8 +259,8 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
         </div>
         {journey.status !== 'completed' && (
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={() => updateJourney({ expected_end_date: new Date(new Date(journey.expected_end_date).getTime() + 30 * 86400000).toISOString().slice(0, 10), status: 'extended' })} disabled={busy} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">Extend 30 days</button>
-            <button onClick={() => { if (confirm('Mark this induction as complete? Any open tasks will stay as they are.')) updateJourney({ status: 'completed', actual_end_date: today, completion_percentage: 100 }); }} disabled={busy} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[13px] font-semibold hover:bg-emerald-700 transition">Mark complete</button>
+            <button onClick={() => updateJourney({ expected_end_date: new Date(new Date(journey.expected_end_date).getTime() + 30 * 86400000).toISOString().slice(0, 10), status: 'extended' })} disabled={busy} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition">Extend 30 days</button>
+            <button onClick={() => { if (confirm('Mark this induction as complete? Any open tasks will stay as they are.')) updateJourney({ status: 'completed', actual_end_date: today, completion_percentage: 100 }); }} disabled={busy} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition">Mark complete</button>
           </div>
         )}
       </div>
@@ -275,9 +275,9 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
             { label: 'Probation ends', value: fmt(journey.probation_end_date) },
           ].map(s => (
             <div key={s.label} className="px-4 py-2.5 min-w-0 sm:flex-1 sm:basis-0 border-t border-l border-gray-100">
-              <p className="text-[11px] text-gray-500">{s.label}</p>
-              <p className="text-[13px] font-semibold text-gray-900 truncate">{s.value}</p>
-              {s.hint && <p className={`text-[11px] truncate ${s.warn ? 'text-red-700' : 'text-gray-500'}`}>{s.hint}</p>}
+              <p className="text-xs text-gray-500">{s.label}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{s.value}</p>
+              {s.hint && <p className={`text-xs truncate ${s.warn ? 'text-red-700' : 'text-gray-500'}`}>{s.hint}</p>}
             </div>
           ))}
         </div>
@@ -285,7 +285,7 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-3.5 h-10 border-b border-gray-100">
-          <h3 className="text-[13px] font-semibold text-gray-900">Checklist</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Checklist</h3>
           <span className="text-xs text-gray-500">{tasks?.length ?? 0}</span>
           <div className="flex-1" />
           {journey.status !== 'completed' && <button onClick={() => setAdding(a => !a)} className="text-xs font-medium text-blue-800 hover:underline inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add task</button>}
@@ -313,7 +313,7 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
                     {t.status === 'done' ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : t.status === 'skipped' ? <MinusCircle className="w-5 h-5 text-gray-400" /> : <Circle className="w-5 h-5 text-gray-300 hover:text-gray-500" />}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</p>
+                    <p className={`text-sm ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</p>
                     <p className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1"><User className="w-3 h-3" />{OWNER_LABEL[t.owner]}</span>
                       {t.due_date && <span className={`inline-flex items-center gap-1 ${late ? 'text-red-700 font-medium' : ''}`}><Calendar className="w-3 h-3" />{late ? 'Overdue · ' : ''}{fmt(t.due_date)}</span>}
@@ -336,7 +336,7 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
 
       <div className="bg-white border border-gray-200 rounded-lg p-3.5">
         <label className={labelCls}>Notes (visible to HR, L&D and admins)</label>
-        <textarea className="w-full min-h-[72px] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent" value={notes} onChange={e => setNotes(e.target.value)} onBlur={() => notes !== (journey.notes || '') && updateJourney({ notes })} placeholder="How are they settling in?" />
+        <textarea className="w-full min-h-[72px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent" value={notes} onChange={e => setNotes(e.target.value)} onBlur={() => notes !== (journey.notes || '') && updateJourney({ notes })} placeholder="How are they settling in?" />
       </div>
     </div>
   );
@@ -378,7 +378,7 @@ function TemplateDetail({ template, designations, paths, onBack, onChanged, onDe
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
-      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All templates</button>
+      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-sm text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All templates</button>
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -389,18 +389,18 @@ function TemplateDetail({ template, designations, paths, onBack, onChanged, onDe
             {template.designations?.title || 'All designations'} · {template.duration_days} days
             {template.learning_paths?.title && <> · <Network className="w-3 h-3 inline -mt-0.5" /> {template.learning_paths.title}</>}
           </p>
-          {template.description && <p className="text-[13px] text-gray-700 mt-2 max-w-2xl">{template.description}</p>}
+          {template.description && <p className="text-sm text-gray-700 mt-2 max-w-2xl">{template.description}</p>}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={() => setEditing(true)} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition inline-flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" /> Edit</button>
-          <button onClick={toggleActive} disabled={busy} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-[13px] font-medium hover:bg-gray-50 transition">{template.is_active ? 'Deactivate' : 'Activate'}</button>
+          <button onClick={() => setEditing(true)} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition inline-flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+          <button onClick={toggleActive} disabled={busy} className="h-8 px-3 rounded-lg border border-gray-300 text-gray-800 text-sm font-medium hover:bg-gray-50 transition">{template.is_active ? 'Deactivate' : 'Activate'}</button>
           <button onClick={remove} disabled={busy} title="Delete" className="h-8 w-8 rounded-lg border border-gray-300 text-red-600 hover:bg-red-50 transition flex items-center justify-center"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-3.5 h-10 border-b border-gray-100">
-          <h3 className="text-[13px] font-semibold text-gray-900">Checklist</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Checklist</h3>
           <span className="text-xs text-gray-500">{tasks?.length ?? 0}</span>
           <div className="flex-1" />
           <button onClick={() => setAdding(a => !a)} className="text-xs font-medium text-blue-800 hover:underline inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add task</button>
@@ -426,7 +426,7 @@ function TemplateDetail({ template, designations, paths, onBack, onChanged, onDe
               <li key={t.id} className="px-3.5 py-2.5 flex items-center gap-3 group">
                 <span className="text-xs text-gray-400 w-4">{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-gray-900">{t.title}</p>
+                  <p className="text-sm text-gray-900">{t.title}</p>
                   <p className="text-xs text-gray-500">{OWNER_LABEL[t.owner]} · by day {t.due_day}{!t.is_required ? ' · Optional' : ''}</p>
                 </div>
                 <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100">
@@ -470,12 +470,12 @@ function TemplateFormModal({ organizationId, template, designations, paths, onCl
           <div><label className={labelCls}>For designation</label><select className={inputCls} value={form.designation_id} onChange={e => setForm(f => ({ ...f, designation_id: e.target.value }))}><option value="">All designations (general)</option>{designations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
           <div><label className={labelCls}>Length (days)</label><input type="number" min={1} className={inputCls} value={form.duration_days} onChange={e => setForm(f => ({ ...f, duration_days: Number(e.target.value) }))} /></div>
           <div className="sm:col-span-2"><label className={labelCls}>Learning path assigned on day 1</label><select className={inputCls} value={form.learning_path_id} onChange={e => setForm(f => ({ ...f, learning_path_id: e.target.value }))}><option value="">None</option>{paths.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-          <div className="sm:col-span-2"><label className={labelCls}>Description (shown to the joiner)</label><textarea className="w-full min-h-[64px] px-3 py-2 border border-gray-300 rounded-lg text-[13px]" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+          <div className="sm:col-span-2"><label className={labelCls}>Description (shown to the joiner)</label><textarea className="w-full min-h-[64px] px-3 py-2 border border-gray-300 rounded-lg text-sm" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
           {error && <p className="sm:col-span-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : template ? 'Save' : 'Create'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : template ? 'Save' : 'Create'}</button>
         </div>
       </form>
     </div>
@@ -508,13 +508,13 @@ export function StartInductionModal({ people, templates, defaultEmployeeId, onCl
         <div className="p-4 space-y-3">
           <div><label className={labelCls}>Who</label><select className={inputCls} value={employeeId} disabled={!!defaultEmployeeId} onChange={e => setEmployeeId(e.target.value)}>{people.map(p => <option key={p.employee_id} value={p.employee_id}>{p.full_name}</option>)}</select></div>
           <div><label className={labelCls}>Template</label><select className={inputCls} value={templateId} onChange={e => setTemplateId(e.target.value)}><option value="">No template (blank checklist)</option>{templates.map(t => <option key={t.id} value={t.id}>{t.title}{t.designations?.title ? ` — ${t.designations.title}` : ''}</option>)}</select>
-            {templates.length === 0 && <p className="text-[11px] text-gray-500 mt-1">No templates yet — create one under Templates so every joiner gets the same checklist.</p>}</div>
-          <div><label className={labelCls}>Start date</label><input type="date" required className={inputCls} value={start} onChange={e => setStart(e.target.value)} /><p className="text-[11px] text-gray-500 mt-1">Task due dates and the learning path are set from this date.</p></div>
+            {templates.length === 0 && <p className="text-xs text-gray-500 mt-1">No templates yet — create one under Templates so every joiner gets the same checklist.</p>}</div>
+          <div><label className={labelCls}>Start date</label><input type="date" required className={inputCls} value={start} onChange={e => setStart(e.target.value)} /><p className="text-xs text-gray-500 mt-1">Task due dates and the learning path are set from this date.</p></div>
           {error && <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving || !employeeId} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Starting…' : 'Start'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button type="submit" disabled={saving || !employeeId} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Starting…' : 'Start'}</button>
         </div>
       </form>
     </div>

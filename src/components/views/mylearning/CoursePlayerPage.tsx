@@ -227,13 +227,14 @@ export default function CoursePlayerPage({
 
   // Moving away from a module that is not yet done asks the learner first.
   const requestGoTo = (idx: number) => {
-    if (idx < 0 || idx >= modules.length || idx === currentIdx) return;
+    // idx === -1 means "finish": the last module, nowhere further to go.
+    if (idx >= modules.length || idx === currentIdx || (idx < 0 && idx !== -1)) return;
     if (!readOnly && !isDone && !isQuiz && mod) {
       setPendingNav(idx);
       setCurriculumOpen(false);
       return;
     }
-    goTo(idx);
+    if (idx >= 0) goTo(idx);
   };
 
   const handleOpenPdf = async () => {
@@ -278,7 +279,8 @@ export default function CoursePlayerPage({
       const updated = await markCurrentDone();
       setPendingNav(null);
       if (isCourseComplete(modules, updated)) setShowCompleteScreen(true);
-      else goTo(target);
+      else if (target >= 0) goTo(target);
+      else setJustMarked(true); // last module done, course still has required work elsewhere
     } finally {
       setSaving(false);
     }
@@ -288,7 +290,7 @@ export default function CoursePlayerPage({
     if (pendingNav === null) return;
     const target = pendingNav;
     setPendingNav(null);
-    goTo(target);
+    if (target >= 0) goTo(target);
   };
 
   const handleQuizSubmit = async () => {
@@ -374,9 +376,9 @@ export default function CoursePlayerPage({
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <MIcon className="w-3 h-3 text-gray-500" />
-                  <span className="text-[10px] text-gray-500">{TYPE_LABEL[m.content_type] || m.content_type}</span>
+                  <span className="text-[11px] text-gray-500">{TYPE_LABEL[m.content_type] || m.content_type}</span>
                   {m.duration_minutes > 0 && (
-                    <span className="text-[10px] text-gray-500">{formatMinutes(m.duration_minutes)}</span>
+                    <span className="text-[11px] text-gray-500">{formatMinutes(m.duration_minutes)}</span>
                   )}
                 </div>
               </div>
@@ -579,12 +581,12 @@ export default function CoursePlayerPage({
               allowFullScreen
             />
             <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-gray-900 border-t border-gray-800">
-              <span className="text-[11px] text-gray-500 truncate">{mod.content_file_name}</span>
+              <span className="text-xs text-gray-500 truncate">{mod.content_file_name}</span>
               <a
                 href={fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-white transition flex-shrink-0"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition flex-shrink-0"
               >
                 <ExternalLink className="w-3 h-3" /> Open in new tab
               </a>
@@ -680,7 +682,7 @@ export default function CoursePlayerPage({
             <div className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden max-w-[100px]">
               <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
             </div>
-            <span className="text-[10px] text-gray-400 flex-shrink-0">{completedCount}/{modules.length}</span>
+            <span className="text-[11px] text-gray-400 flex-shrink-0">{completedCount}/{modules.length}</span>
           </div>
         </div>
 
@@ -715,12 +717,12 @@ export default function CoursePlayerPage({
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-white truncate leading-tight">{mod?.title}</p>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-500">{currentIdx + 1}/{modules.length}</span>
+                    <span className="text-[11px] text-gray-500">{currentIdx + 1}/{modules.length}</span>
                     {mod?.duration_minutes > 0 && (
-                      <><span className="text-gray-700">·</span><span className="text-[10px] text-gray-500 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5 inline" />{formatMinutes(mod.duration_minutes)}</span></>
+                      <><span className="text-gray-700">·</span><span className="text-[11px] text-gray-500 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5 inline" />{formatMinutes(mod.duration_minutes)}</span></>
                     )}
                     {mod?.is_mandatory && !isDone && (
-                      <><span className="text-gray-700">·</span><span className="text-[10px] text-red-400 font-semibold flex items-center gap-0.5"><Lock className="w-2.5 h-2.5 inline" />Required</span></>
+                      <><span className="text-gray-700">·</span><span className="text-[11px] text-red-400 font-semibold flex items-center gap-0.5"><Lock className="w-2.5 h-2.5 inline" />Required</span></>
                     )}
                   </div>
                 </div>
@@ -736,15 +738,7 @@ export default function CoursePlayerPage({
                       <span className="text-xs font-semibold text-emerald-400">Done</span>
                     </div>
                   ) : !readOnly && !isQuiz ? (
-                    <button
-                      onClick={handleMarkDone}
-                      disabled={saving}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg hover:bg-yellow-300 transition disabled:opacity-50"
-                    >
-                      {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      <span className="hidden sm:inline">Mark Done</span>
-                      <span className="sm:hidden">Done</span>
-                    </button>
+                    <span className="hidden sm:inline text-xs text-gray-500">You'll be asked to mark this done when you move on</span>
                   ) : readOnly ? (
                     <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1.5 rounded-lg">Review</span>
                   ) : !isQuiz ? null : (
@@ -773,6 +767,13 @@ export default function CoursePlayerPage({
                     >
                       <span className="hidden sm:inline">{isDone ? 'Next module' : 'Next'}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : !isDone && !isQuiz && !readOnly ? (
+                    <button
+                      onClick={() => requestGoTo(-1)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-yellow-400 text-gray-900 text-xs font-semibold hover:bg-yellow-300 transition"
+                    >
+                      Finish <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   ) : courseDone && !readOnly ? (
                     <button
@@ -830,14 +831,14 @@ export default function CoursePlayerPage({
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition disabled:opacity-50"
               >
                 {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Mark done and continue
+                {pendingNav === -1 ? 'Mark done' : 'Mark done and continue'}
               </button>
               <button
                 onClick={handleSkipAndContinue}
                 disabled={saving}
                 className="w-full py-2.5 border border-gray-700 text-gray-300 text-sm font-semibold rounded-xl hover:border-gray-500 hover:text-white transition disabled:opacity-50"
               >
-                Skip for now
+                {pendingNav === -1 ? 'Not yet' : 'Skip for now'}
               </button>
               <button
                 onClick={() => setPendingNav(null)}

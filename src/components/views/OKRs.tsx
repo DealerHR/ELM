@@ -32,9 +32,9 @@ const STATUS: Record<OKR['status'], { label: string; cls: string }> = {
 };
 const fmt = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const fmtShort = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
-const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
-const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1';
-const chip = (cls: string, text: string) => <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
+const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1';
+const chip = (cls: string, text: string) => <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
 
 const OKR_SELECT = '*, key_results(*), okr_comments(*), okr_review_comments(id, comment, review_date, overall_rating)';
 
@@ -147,11 +147,11 @@ function TeamOkrs() {
   return (
     <div className="h-full flex flex-col min-h-0">
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 h-11 flex items-center gap-3">
-        <span className="text-[13px] font-semibold text-gray-900 hidden sm:inline">{isManagerOnly ? 'Your team' : 'Team OKRs'}</span>
+        <span className="text-sm font-semibold text-gray-900 hidden sm:inline">{isManagerOnly ? 'Your team' : 'Team OKRs'}</span>
         <span className="text-xs text-gray-500 hidden sm:inline">{okrs.filter(o => o.status === 'set').length} set · {okrs.filter(o => o.status === 'draft').length} draft</span>
         <div className="flex-1" />
         {person && canManageSelected && (
-          <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New OKR for {person.full_name.split(' ')[0]}</span><span className="sm:hidden">New OKR</span></button>
+          <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New OKR for {person.full_name.split(' ')[0]}</span><span className="sm:hidden">New OKR</span></button>
         )}
       </div>
 
@@ -160,7 +160,7 @@ function TeamOkrs() {
           <div className="px-3 pt-2.5 pb-2 border-b border-gray-100 space-y-2">
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people" className="w-full h-8 pl-8 pr-3 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search people" className="w-full h-8 pl-8 pr-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent" />
             </div>
             {!isManagerOnly && myEmployeeId && people.some(p => p.reporting_manager_id === myEmployeeId) && (
               <button onClick={() => setTeamOnly(t => !t)} className={`h-7 px-2.5 rounded-full text-xs font-medium transition ${teamOnly ? 'bg-stratefix-black text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>My direct reports</button>
@@ -177,7 +177,7 @@ function TeamOkrs() {
               return (
                 <button key={p.employee_id} onClick={() => { setSelected(p.employee_id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-gray-900 truncate">{p.full_name}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{p.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{list.length === 0 ? 'No OKRs' : `${set.length} set${drafts ? ` · ${drafts} draft` : ''}${list.length - set.length - drafts ? ` · ${list.length - set.length - drafts} locked` : ''}`}</p>
                   </div>
                   {avg !== null && (
@@ -199,7 +199,7 @@ function TeamOkrs() {
             <div className="flex-1 flex items-center justify-center p-8"><div className="text-center"><Target className="w-10 h-10 text-gray-300 mx-auto mb-3" /><p className="text-xs text-gray-500">Pick a person to see or set their OKRs.</p></div></div>
           ) : (
             <div className="p-4 lg:p-6 space-y-4">
-              <button onClick={() => setMobileDetail(false)} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> Everyone</button>
+              <button onClick={() => setMobileDetail(false)} className="lg:hidden inline-flex items-center gap-1 text-sm text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> Everyone</button>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 leading-tight">{person.full_name}</h2>
                 <p className="text-xs text-gray-500 mt-0.5">{[person.designation, person.department].filter(Boolean).join(' · ')}</p>
@@ -209,7 +209,7 @@ function TeamOkrs() {
                   <Target className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
                   <p className="text-sm font-medium text-gray-700">No OKRs yet</p>
                   <p className="text-xs text-gray-500 mt-0.5 mb-3">Write the objective and two to four measurable key results. It stays a draft until you share it.</p>
-                  {canManageSelected && <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold"><Plus className="w-3.5 h-3.5" /> New OKR</button>}
+                  {canManageSelected && <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New OKR</button>}
                 </div>
               )}
               {(['draft', 'set', 'locked', 'cancelled'] as const).map(st => {
@@ -234,7 +234,7 @@ function EmptyBox({ text }: { text: string }) { return <div className="bg-white 
 function Group({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">{title}<span className="text-gray-400 normal-case tracking-normal">{count}</span></h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">{title}<span className="text-gray-400 normal-case tracking-normal">{count}</span></h3>
       {children}
     </div>
   );
@@ -276,7 +276,7 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
       <button onClick={() => setOpen(o => !o)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="text-[13px] font-semibold text-gray-900">{okr.title}</h4>
+            <h4 className="text-sm font-semibold text-gray-900">{okr.title}</h4>
             {chip(st.cls, st.label)}
             {okr.status === 'set' && daysLeft < 0 && chip('bg-red-50 text-red-700', 'Period ended')}
           </div>
@@ -289,19 +289,19 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="h-1.5 w-20 bg-gray-100 rounded-full overflow-hidden hidden sm:block"><div className={`h-full ${okr.status === 'locked' ? 'bg-emerald-500' : 'bg-blue-600'}`} style={{ width: `${okr.overall_progress}%` }} /></div>
-          <span className="text-[13px] font-semibold text-gray-900 w-10 text-right">{okr.overall_progress}%</span>
+          <span className="text-sm font-semibold text-gray-900 w-10 text-right">{okr.overall_progress}%</span>
           <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
         </div>
       </button>
 
       {open && (
         <div className="border-t border-gray-100">
-          {okr.description && <p className="px-4 pt-3 text-[13px] text-gray-700">{okr.description}</p>}
+          {okr.description && <p className="px-4 pt-3 text-sm text-gray-700">{okr.description}</p>}
 
           {/* Key results */}
           <div className="px-4 pt-3">
             <div className="flex items-center gap-2 mb-1.5">
-              <h5 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Key results</h5>
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Key results</h5>
               <div className="flex-1" />
               {editable && <button onClick={() => setAddingKr(a => !a)} className="text-xs font-medium text-blue-800 hover:underline inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Add</button>}
             </div>
@@ -315,21 +315,21 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
           {/* Sign-off */}
           {okr.status === 'locked' && (okr.manager_summary || okr.final_rating) && (
             <div className="mx-4 mt-3 px-3.5 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <p className="text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> Signed off {fmt(okr.locked_at)}{okr.final_rating ? ` · ${okr.final_rating}/5` : ''}</p>
-              {okr.manager_summary && <p className="text-[13px] text-emerald-900 mt-1">{okr.manager_summary}</p>}
+              <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> Signed off {fmt(okr.locked_at)}{okr.final_rating ? ` · ${okr.final_rating}/5` : ''}</p>
+              {okr.manager_summary && <p className="text-sm text-emerald-900 mt-1">{okr.manager_summary}</p>}
             </div>
           )}
 
           {/* Comments */}
           <div className="px-4 pt-3 pb-3">
-            <h5 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Comments</h5>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Comments</h5>
             {(okr.okr_review_comments || []).map(r => (
-              <div key={r.id} className="text-xs text-gray-600 py-1.5"><span className="font-medium text-gray-800">Review note</span> · {fmtShort(r.review_date)}{r.overall_rating ? ` · ${r.overall_rating}/5` : ''}<p className="text-[13px] text-gray-700">{r.comment}</p></div>
+              <div key={r.id} className="text-xs text-gray-600 py-1.5"><span className="font-medium text-gray-800">Review note</span> · {fmtShort(r.review_date)}{r.overall_rating ? ` · ${r.overall_rating}/5` : ''}<p className="text-sm text-gray-700">{r.comment}</p></div>
             ))}
             {(okr.okr_comments || []).length === 0 && (okr.okr_review_comments || []).length === 0 && <p className="text-xs text-gray-500">{canComment ? 'No comments yet.' : okr.status === 'draft' ? 'Comments open once the OKR is shared.' : 'No comments.'}</p>}
             <ul className="space-y-2">
               {(okr.okr_comments || []).map(c => (
-                <li key={c.id} className={`text-[13px] ${c.author_id === userProfile?.id ? 'pl-6' : ''}`}>
+                <li key={c.id} className={`text-sm ${c.author_id === userProfile?.id ? 'pl-6' : ''}`}>
                   <p className="text-xs text-gray-500"><span className="font-medium text-gray-800">{c.author_id === userProfile?.id ? 'You' : c.author_name}</span> · {fmtShort(c.created_at)}</p>
                   <p className="text-gray-800">{c.body}</p>
                 </li>
@@ -338,7 +338,7 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
             {canComment && (
               <div className="mt-2 flex gap-2">
                 <input className={inputCls} placeholder={canManage ? 'Reply or add a note…' : 'Add a comment for your manager…'} value={comment} onChange={e => setComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && postComment()} />
-                <button onClick={postComment} disabled={busy || !comment.trim()} className="h-9 px-3 bg-gray-900 text-white rounded-lg text-[13px] font-medium disabled:opacity-40 flex-shrink-0">Post</button>
+                <button onClick={postComment} disabled={busy || !comment.trim()} className="h-9 px-3 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-40 flex-shrink-0">Post</button>
               </div>
             )}
           </div>
@@ -349,20 +349,20 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
           {canManage && (
             <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center gap-2 flex-wrap">
               {okr.status === 'draft' && <>
-                <button onClick={share} disabled={busy || !(okr.key_results || []).length} title={!(okr.key_results || []).length ? 'Add at least one key result first' : ''} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition"><Send className="w-3.5 h-3.5" /> Share with employee</button>
-                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg text-[13px] font-medium hover:bg-white transition"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                <button onClick={share} disabled={busy || !(okr.key_results || []).length} title={!(okr.key_results || []).length ? 'Add at least one key result first' : ''} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition"><Send className="w-3.5 h-3.5" /> Share with employee</button>
+                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium hover:bg-white transition"><Pencil className="w-3.5 h-3.5" /> Edit</button>
                 <div className="flex-1" />
-                <button onClick={remove} disabled={busy} className="inline-flex items-center gap-1.5 h-8 px-3 text-red-600 rounded-lg text-[13px] font-medium hover:bg-red-50 transition"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
+                <button onClick={remove} disabled={busy} className="inline-flex items-center gap-1.5 h-8 px-3 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
               </>}
               {okr.status === 'set' && <>
-                <button onClick={() => setLocking(true)} disabled={busy} className="inline-flex items-center gap-1.5 h-8 px-3 bg-emerald-600 text-white rounded-lg text-[13px] font-semibold hover:bg-emerald-700 transition"><Lock className="w-3.5 h-3.5" /> Lock</button>
-                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg text-[13px] font-medium hover:bg-white transition"><Pencil className="w-3.5 h-3.5" /> Edit</button>
-                <button onClick={unshare} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-[13px] font-medium hover:bg-white transition">Back to draft</button>
+                <button onClick={() => setLocking(true)} disabled={busy} className="inline-flex items-center gap-1.5 h-8 px-3 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"><Lock className="w-3.5 h-3.5" /> Lock</button>
+                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium hover:bg-white transition"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                <button onClick={unshare} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-sm font-medium hover:bg-white transition">Back to draft</button>
                 <div className="flex-1" />
-                <button onClick={cancel} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-[13px] font-medium hover:bg-white transition">Cancel OKR</button>
+                <button onClick={cancel} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-sm font-medium hover:bg-white transition">Cancel OKR</button>
               </>}
               {okr.status === 'locked' && (userProfile?.role === 'hr' || userProfile?.role === 'admin') && (
-                <button onClick={unlock} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-[13px] font-medium hover:bg-white transition">Unlock (HR/admin)</button>
+                <button onClick={unlock} disabled={busy} className="h-8 px-3 text-gray-600 rounded-lg text-sm font-medium hover:bg-white transition">Unlock (HR/admin)</button>
               )}
             </div>
           )}
@@ -383,7 +383,7 @@ function KeyResultRow({ kr, editable, busy, onUpdate, onRemove }: { kr: KeyResul
   return (
     <li className="px-3 py-2 flex items-center gap-3 group">
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-gray-900">{kr.title}</p>
+        <p className="text-sm text-gray-900">{kr.title}</p>
         <p className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
           {editable ? (
             <span className="inline-flex items-center gap-1">
@@ -465,17 +465,17 @@ function OkrFormModal({ okr, employeeId, personName, onClose, onSaved }: { okr?:
         <div className="flex items-center justify-between px-4 h-12 border-b border-gray-100"><h3 className="text-sm font-semibold text-gray-900">{okr ? 'Edit OKR' : `New OKR${personName ? ` for ${personName}` : ''}`}</h3><button type="button" onClick={onClose} className="w-9 h-9 -mr-2 flex items-center justify-center text-gray-500"><X className="w-4 h-4" /></button></div>
         <div className="p-4 grid sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2"><label className={labelCls}>Objective</label><input required autoFocus className={inputCls} placeholder="e.g. Grow test-drive conversions this quarter" value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} /></div>
-          <div className="sm:col-span-2"><label className={labelCls}>Why it matters (optional)</label><textarea className="w-full min-h-[64px] px-3 py-2 border border-gray-300 rounded-lg text-[13px]" value={f.description} onChange={e => setF(x => ({ ...x, description: e.target.value }))} /></div>
+          <div className="sm:col-span-2"><label className={labelCls}>Why it matters (optional)</label><textarea className="w-full min-h-[64px] px-3 py-2 border border-gray-300 rounded-lg text-sm" value={f.description} onChange={e => setF(x => ({ ...x, description: e.target.value }))} /></div>
           <div><label className={labelCls}>Period</label><select className={inputCls} value={f.period} onChange={e => setF(x => ({ ...x, period: e.target.value }))}><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>
           <div><label className={labelCls}>Type</label><select className={inputCls} value={f.okr_type} onChange={e => setF(x => ({ ...x, okr_type: e.target.value }))}><option value="individual">Individual</option><option value="team">Team</option><option value="company">Company</option></select></div>
           <div><label className={labelCls}>Start</label><input type="date" required className={inputCls} value={f.start_date} onChange={e => setF(x => ({ ...x, start_date: e.target.value }))} /></div>
           <div><label className={labelCls}>End</label><input type="date" required className={inputCls} value={f.end_date} onChange={e => setF(x => ({ ...x, end_date: e.target.value }))} /></div>
-          {!okr && <p className="sm:col-span-2 text-[11px] text-gray-500">Saved as a draft. Add key results, then share it — the employee sees it only after that.</p>}
+          {!okr && <p className="sm:col-span-2 text-xs text-gray-500">Saved as a draft. Add key results, then share it — the employee sees it only after that.</p>}
           {err && <p className="sm:col-span-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : okr ? 'Save' : 'Create draft'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : okr ? 'Save' : 'Create draft'}</button>
         </div>
       </form>
     </div>
@@ -501,13 +501,13 @@ function LockModal({ okr, onClose, onLocked }: { okr: OKR; onClose: () => void; 
         <div className="p-4 space-y-3">
           <p className="text-xs text-gray-600">Locking is your sign-off at {okr.overall_progress}%. Progress and key results freeze and comments close. HR or an admin can unlock it later if needed.</p>
           <div><label className={labelCls}>Rating (optional)</label>
-            <div className="flex gap-1.5">{[1, 2, 3, 4, 5].map(n => <button key={n} onClick={() => setRating(r => r === n ? null : n)} className={`h-9 w-9 rounded-lg border text-[13px] font-semibold transition ${rating === n ? 'bg-stratefix-black text-white border-stratefix-black' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{n}</button>)}</div></div>
-          <div><label className={labelCls}>Summary for the employee (optional)</label><textarea className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-lg text-[13px]" placeholder="What went well, what to carry forward…" value={summary} onChange={e => setSummary(e.target.value)} /></div>
+            <div className="flex gap-1.5">{[1, 2, 3, 4, 5].map(n => <button key={n} onClick={() => setRating(r => r === n ? null : n)} className={`h-9 w-9 rounded-lg border text-sm font-semibold transition ${rating === n ? 'bg-stratefix-black text-white border-stratefix-black' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{n}</button>)}</div></div>
+          <div><label className={labelCls}>Summary for the employee (optional)</label><textarea className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="What went well, what to carry forward…" value={summary} onChange={e => setSummary(e.target.value)} /></div>
           {err && <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
-          <button onClick={onClose} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button onClick={lock} disabled={saving} className="inline-flex items-center gap-1.5 h-9 px-4 bg-emerald-600 text-white rounded-lg text-[13px] font-semibold hover:bg-emerald-700 disabled:opacity-50 transition"><Lock className="w-3.5 h-3.5" /> {saving ? 'Locking…' : 'Lock'}</button>
+          <button onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button onClick={lock} disabled={saving} className="inline-flex items-center gap-1.5 h-9 px-4 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition"><Lock className="w-3.5 h-3.5" /> {saving ? 'Locking…' : 'Lock'}</button>
         </div>
       </div>
     </div>

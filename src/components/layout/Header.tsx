@@ -23,7 +23,7 @@ export default function Header({ activeView, onNavigate }: HeaderProps) {
     <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-5 flex items-center gap-3">
       <div className="min-w-0 flex items-baseline gap-2">
         <span className="lg:hidden text-xs font-bold text-stratefix-black">ELM</span>
-        <h2 className="text-[15px] font-semibold text-gray-900 truncate">{title}</h2>
+        <h2 className="text-base font-semibold text-gray-900 truncate">{title}</h2>
       </div>
 
       <div className="flex-1" />
@@ -38,7 +38,7 @@ export default function Header({ activeView, onNavigate }: HeaderProps) {
           {userProfile?.avatar_url ? (
             <img src={userProfile.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
           ) : (
-            <span className="w-6 h-6 rounded-full bg-stratefix-black text-stratefix-yellow flex items-center justify-center text-[10px] font-bold">{initials}</span>
+            <span className="w-6 h-6 rounded-full bg-stratefix-black text-stratefix-yellow flex items-center justify-center text-[11px] font-bold">{initials}</span>
           )}
           <span className="text-xs font-medium text-gray-700 max-w-[140px] truncate">{userProfile?.full_name}</span>
         </button>

@@ -72,11 +72,11 @@ const EMPLOYMENT_TYPES = [
 ];
 
 const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
-const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1';
+const inputCls = 'w-full h-9 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent bg-white';
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1';
 
 function chip(cls: string, text: string) {
-  return <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
+  return <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cls}`}>{text}</span>;
 }
 
 export default function Employees() {
@@ -173,10 +173,10 @@ export default function Employees() {
     <div className="h-full flex flex-col min-h-0">
       {/* Toolbar */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-6 h-11 flex items-center gap-3">
-        <span className="text-[13px] font-semibold text-gray-900 hidden sm:inline">{counts.all} {counts.all === 1 ? 'person' : 'people'}</span>
+        <span className="text-sm font-semibold text-gray-900 hidden sm:inline">{counts.all} {counts.all === 1 ? 'person' : 'people'}</span>
         <div className="flex-1" />
         {canEdit && (
-          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-[13px] font-semibold">
+          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold">
             <Plus className="w-3.5 h-3.5" /> Add person
           </button>
         )}
@@ -192,7 +192,7 @@ export default function Employees() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search name, code, department"
-                className="w-full h-8 pl-8 pr-3 border border-gray-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent"
+                className="w-full h-8 pl-8 pr-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stratefix-yellow focus:border-transparent"
               />
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -217,10 +217,10 @@ export default function Employees() {
                 <button key={p.id} onClick={() => select(p.id)} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <Avatar person={p} size={8} />
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-medium truncate ${p.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{p.full_name}</p>
+                    <p className={`text-sm font-medium truncate ${p.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{p.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{[p.designation, p.department].filter(Boolean).join(' · ') || roleLabel(p.role)}</p>
                   </div>
-                  {p.employee_id ? <span className={`w-2 h-2 rounded-full flex-shrink-0 ${st.dot}`} title={st.label} /> : <span className="text-[10px] text-gray-400">account</span>}
+                  {p.employee_id ? <span className={`w-2 h-2 rounded-full flex-shrink-0 ${st.dot}`} title={st.label} /> : <span className="text-[11px] text-gray-400">account</span>}
                   <ChevronRight className="w-4 h-4 text-gray-300 lg:hidden" />
                 </button>
               );
@@ -275,7 +275,7 @@ export default function Employees() {
 
 function Avatar({ person, size }: { person: Person; size: 8 | 12 }) {
   const initials = person.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const dim = size === 12 ? 'w-12 h-12 text-sm' : 'w-8 h-8 text-[11px]';
+  const dim = size === 12 ? 'w-12 h-12 text-sm' : 'w-8 h-8 text-xs';
   return person.avatar_url
     ? <img src={person.avatar_url} alt="" className={`${dim} rounded-full object-cover flex-shrink-0`} />
     : <span className={`${dim} rounded-full bg-stratefix-black text-stratefix-yellow font-bold flex items-center justify-center flex-shrink-0`}>{initials}</span>;
@@ -332,7 +332,7 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
 
   return (
     <div className="p-4 lg:p-6 space-y-4">
-      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-[13px] text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All people</button>
+      <button onClick={onBack} className="lg:hidden inline-flex items-center gap-1 text-sm text-gray-600 -mt-1"><ChevronLeft className="w-4 h-4" /> All people</button>
 
       <div className="flex items-start gap-3">
         <Avatar person={person} size={12} />
@@ -363,8 +363,8 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
               { label: 'OKRs', value: okrs ? `${okrs.length}` : '…' },
             ].map(s => (
               <div key={s.label} className="px-4 py-2.5 min-w-0 sm:flex-1 sm:basis-0 border-t border-l border-gray-100">
-                <p className="text-[11px] text-gray-500">{s.label}</p>
-                <p className="text-[13px] font-semibold text-gray-900 truncate">{s.value}</p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{s.value}</p>
               </div>
             ))}
           </div>
@@ -373,8 +373,8 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
 
       <div className="flex items-stretch gap-5 border-b border-gray-200 h-9 overflow-x-auto">
         {tabs.filter(t => t.id === 'profile' || person.employee_id).map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-1.5 text-[13px] border-b-2 whitespace-nowrap transition ${tab === t.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-            {t.label}{t.count !== undefined && <span className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{t.count}</span>}
+          <button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-1.5 text-sm border-b-2 whitespace-nowrap transition ${tab === t.id ? 'border-stratefix-yellow text-gray-900 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+            {t.label}{t.count !== undefined && <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-px">{t.count}</span>}
           </button>
         ))}
       </div>
@@ -498,16 +498,16 @@ function ProfileTab({ person, people, departments, designations, canEdit, canEdi
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h3 className="text-[13px] font-semibold text-gray-900 mb-3">Account</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Account</h3>
         <div className="grid sm:grid-cols-2 gap-3">
           <div><label className={labelCls}>Email (sign-in)</label><input className={`${inputCls} bg-gray-50`} value={person.email} disabled /></div>
           <div><label className={labelCls}>Role on the platform</label>
             <select className={inputCls} value={form.role} disabled={!canEditAccount || isSelf} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
               {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
-            {isSelf && <p className="text-[11px] text-gray-500 mt-1">You cannot change your own role.</p>}
+            {isSelf && <p className="text-xs text-gray-500 mt-1">You cannot change your own role.</p>}
           </div>
-          <label className="flex items-center gap-2 text-[13px] text-gray-800 sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm text-gray-800 sm:col-span-2">
             <input type="checkbox" className="w-4 h-4 rounded border-gray-300" checked={form.is_active} disabled={!canEditAccount || isSelf} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
             Can sign in
           </label>
@@ -518,21 +518,21 @@ function ProfileTab({ person, people, departments, designations, canEdit, canEdi
 
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={save} disabled={!dirty || saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : 'Save changes'}</button>
+          <button onClick={save} disabled={!dirty || saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : 'Save changes'}</button>
           {saved && !dirty && <span className="text-xs text-emerald-700 inline-flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Saved</span>}
           <div className="flex-1" />
           {person.employee_id && person.lifecycle_stage !== 'exited' && !leaving && (
-            <button onClick={() => setLeaving({ status: 'resigned', date: new Date().toISOString().slice(0, 10) })} className="h-9 px-3 border border-gray-300 text-gray-700 rounded-lg text-[13px] font-medium hover:bg-gray-50 transition">Mark as leaving / left</button>
+            <button onClick={() => setLeaving({ status: 'resigned', date: new Date().toISOString().slice(0, 10) })} className="h-9 px-3 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Mark as leaving / left</button>
           )}
           {person.employee_id && person.lifecycle_stage === 'exited' && (
-            <button onClick={reactivate} disabled={saving} className="h-9 px-3 border border-gray-300 text-gray-700 rounded-lg text-[13px] font-medium hover:bg-gray-50 transition">Reactivate</button>
+            <button onClick={reactivate} disabled={saving} className="h-9 px-3 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Reactivate</button>
           )}
         </div>
       )}
 
       {leaving && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
-          <p className="text-[13px] font-semibold text-amber-900">Leaving the organisation</p>
+          <p className="text-sm font-semibold text-amber-900">Leaving the organisation</p>
           <div className="grid sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>What is happening</label>
               <select className={inputCls} value={leaving.status} onChange={e => setLeaving(l => l && ({ ...l, status: e.target.value as any }))}>
@@ -544,8 +544,8 @@ function ProfileTab({ person, people, departments, designations, canEdit, canEdi
           </div>
           <p className="text-xs text-amber-800">{leaving.status === 'notice_period' ? 'They keep their access until you mark them as left.' : 'Their sign-in is disabled. Their training record and OKRs are kept.'}</p>
           <div className="flex gap-2">
-            <button onClick={markLeft} disabled={saving} className="h-9 px-4 bg-amber-600 text-white rounded-lg text-[13px] font-semibold hover:bg-amber-700 transition">Confirm</button>
-            <button onClick={() => setLeaving(null)} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-amber-100 rounded-lg transition">Cancel</button>
+            <button onClick={markLeft} disabled={saving} className="h-9 px-4 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition">Confirm</button>
+            <button onClick={() => setLeaving(null)} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-amber-100 rounded-lg transition">Cancel</button>
           </div>
         </div>
       )}
@@ -582,7 +582,7 @@ function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] 
       {!open && canEdit && person.employee_id && person.lifecycle_stage !== 'exited' && (
         <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3">
           <p className="text-xs text-gray-600">{rows.length ? 'No induction in progress.' : 'No induction has been started for this person.'}</p>
-          <button onClick={() => setShowStart(true)} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 transition whitespace-nowrap">Start induction</button>
+          <button onClick={() => setShowStart(true)} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 transition whitespace-nowrap">Start induction</button>
         </div>
       )}
       {rows.length === 0 && !canEdit && <EmptyTab icon={ClipboardList} text="No induction has been started for this person." />}
@@ -590,7 +590,7 @@ function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] 
         <div key={j.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-4 border-b border-gray-100">
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-gray-900">{j.induction_templates?.title || 'Induction'} · <span className="capitalize">{j.status.replace('_', ' ')}</span></p>
+              <p className="text-sm font-medium text-gray-900">{j.induction_templates?.title || 'Induction'} · <span className="capitalize">{j.status.replace('_', ' ')}</span></p>
               <p className="text-xs text-gray-500">{fmtDate(j.start_date)} → {fmtDate(j.actual_end_date || j.expected_end_date)}{j.actual_end_date ? '' : ' (expected)'}{j.probation_end_date ? ` · Probation ends ${fmtDate(j.probation_end_date)}` : ''}</p>
             </div>
             <div className="flex items-center gap-2">
@@ -606,7 +606,7 @@ function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] 
                 return (
                   <li key={t.id} className="px-4 py-2 flex items-center gap-3">
                     {t.status === 'pending' ? <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" /> : <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
-                    <span className={`text-[13px] flex-1 min-w-0 truncate ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
+                    <span className={`text-sm flex-1 min-w-0 truncate ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
                     <span className={`text-xs ${late ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{t.owner === 'employee' ? 'Joiner' : t.owner === 'hr' ? 'HR' : 'Manager'}{t.due_date ? ` · ${fmtDate(t.due_date)}` : ''}</span>
                   </li>
                 );
@@ -615,7 +615,7 @@ function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] 
           )}
         </div>
       ))}
-      {rows.length > 0 && <p className="text-[11px] text-gray-500">Tick tasks and add notes under Onboard → Inductions.</p>}
+      {rows.length > 0 && <p className="text-xs text-gray-500">Tick tasks and add notes under Onboard → Inductions.</p>}
       {showStart && person.employee_id && (
         <StartInductionModal
           people={[{ employee_id: person.employee_id, full_name: person.full_name, designation_id: person.designation_id || null }]}
@@ -649,8 +649,8 @@ function TrainingTab({ rows, person }: { rows: TrainingRow[] | null; person: Per
         <div className="flex-1" />
         <button onClick={exportCsv} className="inline-flex items-center gap-1 text-xs font-medium text-blue-800 hover:underline"><Download className="w-3.5 h-3.5" /> Export CSV</button>
       </div>
-      <table className="w-full text-[13px] hidden sm:table">
-        <thead><tr className="text-[11px] text-gray-500 text-left"><th className="font-medium px-3.5 py-2">Item</th><th className="font-medium px-3.5 py-2 w-28">Status</th><th className="font-medium px-3.5 py-2 w-28">Assigned</th><th className="font-medium px-3.5 py-2 w-28">Due</th><th className="font-medium px-3.5 py-2 w-28">Completed</th></tr></thead>
+      <table className="w-full text-sm hidden sm:table">
+        <thead><tr className="text-xs text-gray-500 text-left"><th className="font-medium px-3.5 py-2">Item</th><th className="font-medium px-3.5 py-2 w-28">Status</th><th className="font-medium px-3.5 py-2 w-28">Assigned</th><th className="font-medium px-3.5 py-2 w-28">Due</th><th className="font-medium px-3.5 py-2 w-28">Completed</th></tr></thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.id} className="border-t border-gray-100">
@@ -666,7 +666,7 @@ function TrainingTab({ rows, person }: { rows: TrainingRow[] | null; person: Per
       <ul className="sm:hidden divide-y divide-gray-100">
         {rows.map(r => (
           <li key={r.id} className="px-3.5 py-2.5 flex items-center gap-3">
-            <div className="flex-1 min-w-0"><p className="text-[13px] text-gray-900 truncate">{r.title}</p><p className="text-xs text-gray-500">{r.completed_at ? `Completed ${fmtDate(r.completed_at)}` : r.due_date ? `Due ${fmtDate(r.due_date)}` : `Assigned ${fmtDate(r.assigned_date)}`}</p></div>
+            <div className="flex-1 min-w-0"><p className="text-sm text-gray-900 truncate">{r.title}</p><p className="text-xs text-gray-500">{r.completed_at ? `Completed ${fmtDate(r.completed_at)}` : r.due_date ? `Due ${fmtDate(r.due_date)}` : `Assigned ${fmtDate(r.assigned_date)}`}</p></div>
             {statusChip(r.status)}
           </li>
         ))}
@@ -683,7 +683,7 @@ function OkrTab({ rows }: { rows: OkrRow[] | null }) {
       {rows.map(o => (
         <div key={o.id} className="px-4 py-3 flex items-center gap-4">
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-gray-900 truncate">{o.title}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{o.title}</p>
             <p className="text-xs text-gray-500 capitalize">{o.period} · {fmtDate(o.start_date)} → {fmtDate(o.end_date)} · {o.status.replace(/_/g, ' ')}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -741,12 +741,12 @@ function AddPersonModal({ departments, designations, managers, organizationId, o
           <div><label className={labelCls}>Date of joining</label><input type="date" required className={inputCls} value={form.date_of_joining} onChange={e => setForm(f => ({ ...f, date_of_joining: e.target.value }))} /></div>
           <div><label className={labelCls}>Employee code <span className="text-gray-400">(optional)</span></label><input className={inputCls} placeholder="Generated if blank" value={form.employee_code} onChange={e => setForm(f => ({ ...f, employee_code: e.target.value }))} /></div>
           <div className="sm:col-span-2"><label className={labelCls}>Role on the platform</label><select className={inputCls} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>{ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select>
-            <p className="text-[11px] text-gray-500 mt-1">A future joining date puts them in the Joining stage until that day.</p></div>
+            <p className="text-xs text-gray-500 mt-1">A future joining date puts them in the Joining stage until that day.</p></div>
           {error && <p className="sm:col-span-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-[13px] font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Creating…' : 'Create account'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Creating…' : 'Create account'}</button>
         </div>
       </form>
     </div>
@@ -762,10 +762,10 @@ function CredentialsModal({ name, email, password, onClose }: { name: string; em
       <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900">Account created for {name}</h3>
         <p className="text-xs text-gray-600">Share these once. The password is not stored and will not be shown again; they must change it when they first sign in.</p>
-        <pre className="text-[13px] bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap break-all">{text}</pre>
+        <pre className="text-sm bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap break-all">{text}</pre>
         <div className="flex gap-2 justify-end">
-          <button onClick={copy} className="inline-flex items-center gap-1.5 h-9 px-3 border border-gray-300 text-gray-800 rounded-lg text-[13px] font-medium hover:bg-gray-50 transition">{copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{copied ? 'Copied' : 'Copy'}</button>
-          <button onClick={onClose} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 transition">Done</button>
+          <button onClick={copy} className="inline-flex items-center gap-1.5 h-9 px-3 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-50 transition">{copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{copied ? 'Copied' : 'Copy'}</button>
+          <button onClick={onClose} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 transition">Done</button>
         </div>
       </div>
     </div>
