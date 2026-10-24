@@ -8,6 +8,7 @@ import {
 import { supabase, QUIZ_PASS_MARK } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import CoursePlayerPage, { isCourseComplete } from './mylearning/CoursePlayerPage';
+import { useRoute, replaceRoute } from '../../lib/router';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1074,6 +1075,18 @@ export default function MyLearning() {
     }
     return s + (a.learning_courses?.duration_hours || 0);
   }, 0);
+
+  // Deep link: #/my-learning/<assignment id> opens that course straight away (paths just land on the list).
+  const route = useRoute();
+  useEffect(() => {
+    if (route.view !== 'my-learning' || !route.id || loading || assignments.length === 0) return;
+    const a = assignments.find(x => x.id === route.id);
+    if (a?.course_id && a.learning_courses && !activeCoursePlayer) {
+      replaceRoute('my-learning');
+      if (courseStarted(a.course_id) || courseDone(a.course_id)) handleOpenCourse(a.course_id, a.learning_courses.title, a.id, courseDone(a.course_id));
+      else handleStartAndOpen(a.id, a.course_id, a.learning_courses.title, courseModulesMap[a.course_id] || []);
+    }
+  }, [route.id, loading, assignments.length]);
 
   if (loading) {
     return (

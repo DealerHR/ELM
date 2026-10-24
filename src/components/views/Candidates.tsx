@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { callEdgeFunction, generateTemporaryPassword } from '../../lib/edgeFunctions';
+import { useRoute } from '../../lib/router';
 import {
   UserPlus, Search, Clock, CheckCircle,
   XCircle, Mail, Phone, Briefcase, Calendar, Star,
@@ -229,6 +230,8 @@ interface Designation {
 export default function Candidates() {
   const { userProfile } = useAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const route = useRoute();
+  const [openedFromLink, setOpenedFromLink] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [growthScoreMap, setGrowthScoreMap] = useState<Record<string, { fit_level: string; overall_score: number }>>({});
   const [domainAssessments, setDomainAssessments] = useState<DomainAssessment[]>([]);
@@ -282,6 +285,13 @@ export default function Candidates() {
   });
 
   useEffect(() => { loadData(); }, [userProfile]);
+
+  // Deep link: #/candidates/<candidate id>
+  useEffect(() => {
+    if (route.view !== 'candidates' || !route.id || route.id === openedFromLink) return;
+    const c = candidates.find(x => x.id === route.id);
+    if (c) { setOpenedFromLink(route.id); openDetail(c); }
+  }, [route.id, candidates.length]);
 
   async function loadData() {
     if (!userProfile?.organization_id) return;

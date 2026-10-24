@@ -17,8 +17,8 @@ export interface QueueItem {
   /** Short age or due text, e.g. "3 days overdue" */
   when?: string;
   tone: QueueTone;
-  /** Button label and the view it opens */
-  action: { label: string; view: string };
+  /** Button label, the view it opens, and the record to land on */
+  action: { label: string; view: string; id?: string; params?: Record<string, string> };
   /** Lower sorts first */
   priority: number;
 }
@@ -72,21 +72,21 @@ async function hiringItems({ profile }: Ctx): Promise<QueueItem[]> {
     const who = [c.full_name, c.applied_position_title].filter(Boolean).join(' · ');
     switch (c.status) {
       case 'assessment_completed':
-        out.push({ id: `cand-${c.id}`, title: 'Review assessment result', detail: who, when: c.updated_at ? ago(c.updated_at) : undefined, tone: 'info', action: { label: 'Open', view: 'candidates' }, priority: 30 });
+        out.push({ id: `cand-${c.id}`, title: 'Review assessment result', detail: who, when: c.updated_at ? ago(c.updated_at) : undefined, tone: 'info', action: { label: 'Open', view: 'candidates', id: c.id }, priority: 30 });
         break;
       case 'interview_scheduled':
         if (c.interview_date && daysFrom(c.interview_date) <= 0)
-          out.push({ id: `cand-${c.id}`, title: 'Record interview outcome', detail: who, when: daysFrom(c.interview_date) === 0 ? 'interview today' : `interview was ${ago(c.interview_date)}`, tone: 'warn', action: { label: 'Open', view: 'candidates' }, priority: 25 });
+          out.push({ id: `cand-${c.id}`, title: 'Record interview outcome', detail: who, when: daysFrom(c.interview_date) === 0 ? 'interview today' : `interview was ${ago(c.interview_date)}`, tone: 'warn', action: { label: 'Open', view: 'candidates', id: c.id }, priority: 25 });
         break;
       case 'interviewed':
       case 'shortlisted':
-        out.push({ id: `cand-${c.id}`, title: 'Decide: offer or close', detail: who, when: c.updated_at ? ago(c.updated_at) : undefined, tone: 'info', action: { label: 'Open', view: 'candidates' }, priority: 35 });
+        out.push({ id: `cand-${c.id}`, title: 'Decide: offer or close', detail: who, when: c.updated_at ? ago(c.updated_at) : undefined, tone: 'info', action: { label: 'Open', view: 'candidates', id: c.id }, priority: 35 });
         break;
       case 'offer_extended':
-        out.push({ id: `cand-${c.id}`, title: 'Offer out — waiting for reply', detail: who, when: c.updated_at ? `sent ${ago(c.updated_at)}` : undefined, tone: 'info', action: { label: 'Open', view: 'candidates' }, priority: 40 });
+        out.push({ id: `cand-${c.id}`, title: 'Offer out — waiting for reply', detail: who, when: c.updated_at ? `sent ${ago(c.updated_at)}` : undefined, tone: 'info', action: { label: 'Open', view: 'candidates', id: c.id }, priority: 40 });
         break;
       case 'offer_accepted':
-        out.push({ id: `cand-${c.id}`, title: 'Convert to employee and start induction', detail: who, when: c.updated_at ? `accepted ${ago(c.updated_at)}` : undefined, tone: 'warn', action: { label: 'Convert', view: 'candidates' }, priority: 15 });
+        out.push({ id: `cand-${c.id}`, title: 'Convert to employee and start induction', detail: who, when: c.updated_at ? `accepted ${ago(c.updated_at)}` : undefined, tone: 'warn', action: { label: 'Convert', view: 'candidates', id: c.id }, priority: 15 });
         break;
     }
   }
@@ -122,13 +122,13 @@ async function onboardingItems(ctx: Ctx, as: 'hr' | 'manager'): Promise<QueueIte
       const hasJourney = jList.some(j => j.employee_id === e.id);
       if (!hasJourney && (e.lifecycle_stage === 'joining' || (e.lifecycle_stage === 'active' && daysFrom(e.date_of_joining) >= -14 && daysFrom(e.date_of_joining) <= 0))) {
         const n = daysFrom(e.date_of_joining);
-        out.push({ id: `join-${e.id}`, title: 'Start induction', detail: nameOf(e.id), when: n > 0 ? `joins in ${plural(n, 'day')}` : n === 0 ? 'joins today' : `joined ${plural(-n, 'day')} ago`, tone: n <= 0 ? 'warn' : 'info', action: { label: 'Start', view: 'inductions' }, priority: n <= 0 ? 12 : 45 });
+        out.push({ id: `join-${e.id}`, title: 'Start induction', detail: nameOf(e.id), when: n > 0 ? `joins in ${plural(n, 'day')}` : n === 0 ? 'joins today' : `joined ${plural(-n, 'day')} ago`, tone: n <= 0 ? 'warn' : 'info', action: { label: 'Start', view: 'employees', id: e.id }, priority: n <= 0 ? 12 : 45 });
       }
     }
     // Probation ending soon.
     for (const j of jList) {
       if (j.probation_end_date && j.probation_end_date <= in14 && daysFrom(j.probation_end_date) >= -7) {
-        out.push({ id: `prob-${j.id}`, title: 'Probation review due', detail: nameOf(j.employee_id), when: dueText(j.probation_end_date), tone: daysFrom(j.probation_end_date) <= 0 ? 'danger' : 'warn', action: { label: 'Open', view: 'inductions' }, priority: 20 });
+        out.push({ id: `prob-${j.id}`, title: 'Probation review due', detail: nameOf(j.employee_id), when: dueText(j.probation_end_date), tone: daysFrom(j.probation_end_date) <= 0 ? 'danger' : 'warn', action: { label: 'Open', view: 'inductions', id: j.id }, priority: 20 });
       }
     }
   }
@@ -139,7 +139,7 @@ async function onboardingItems(ctx: Ctx, as: 'hr' | 'manager'): Promise<QueueIte
     for (const t of (tasks || []) as any[]) {
       const j = jList.find(x => x.id === t.journey_id);
       const n = t.due_date ? daysFrom(t.due_date) : 0;
-      out.push({ id: `itask-${t.id}`, title: t.title, detail: `Induction · ${j ? nameOf(j.employee_id) : ''}`, when: dueText(t.due_date), tone: n < 0 ? 'danger' : 'warn', action: { label: 'Open', view: as === 'hr' ? 'inductions' : 'employees' }, priority: n < 0 ? 10 : 22 });
+      out.push({ id: `itask-${t.id}`, title: t.title, detail: `Induction · ${j ? nameOf(j.employee_id) : ''}`, when: dueText(t.due_date), tone: n < 0 ? 'danger' : 'warn', action: { label: 'Open', view: as === 'hr' ? 'inductions' : 'employees', id: as === 'hr' ? t.journey_id : j?.employee_id }, priority: n < 0 ? 10 : 22 });
     }
   }
   return out;
@@ -157,7 +157,7 @@ async function learningAdminItems({ profile }: Ctx): Promise<QueueItem[]> {
   if (reqs.length) {
     const { data: ppl } = await supabase.from('user_profiles').select('id, full_name').in('id', reqs.map(r => r.employee_id));
     for (const r of reqs) {
-      out.push({ id: `req-${r.id}`, title: 'Approve course request', detail: `${(ppl || []).find((p: any) => p.id === r.employee_id)?.full_name || 'Someone'} · ${r.learning_courses?.title || 'a course'}`, when: ago(r.requested_at), tone: 'info', action: { label: 'Review', view: 'course-access-requests' }, priority: 28 });
+      out.push({ id: `req-${r.id}`, title: 'Approve course request', detail: `${(ppl || []).find((p: any) => p.id === r.employee_id)?.full_name || 'Someone'} · ${r.learning_courses?.title || 'a course'}`, when: ago(r.requested_at), tone: 'info', action: { label: 'Review', view: 'course-builder', params: { tab: 'requests' } }, priority: 28 });
     }
   }
 
@@ -176,7 +176,7 @@ async function learningAdminItems({ profile }: Ctx): Promise<QueueItem[]> {
     }
     const toCertify = list.filter(a => a.learning_courses && ['classroom', 'on_job'].includes(a.learning_courses.delivery_type) && a.due_date && daysFrom(a.due_date) <= 0);
     if (toCertify.length) {
-      out.push({ id: 'certify', title: `${plural(toCertify.length, 'classroom / on-job completion')} to sign off`, detail: 'Sessions whose date has passed and are not yet certified', tone: 'warn', action: { label: 'Certify', view: 'course-builder' }, priority: 26 });
+      out.push({ id: 'certify', title: `${plural(toCertify.length, 'classroom / on-job completion')} to sign off`, detail: 'Sessions whose date has passed and are not yet certified', tone: 'warn', action: { label: 'Certify', view: 'course-builder', params: { tab: 'certifications' } }, priority: 26 });
     }
   }
   return out;
@@ -201,17 +201,17 @@ async function okrManagerItems({ profile, employeeId }: Ctx): Promise<QueueItem[
   // Managers see per-person gaps; HR/admin would drown in them, so they only see the drafts they own.
   if (profile.role === 'manager') {
     for (const e of empList) {
-      if (!list.some(o => o.employee_id === e.id)) out.push({ id: `okr-none-${e.id}`, title: 'Set OKRs', detail: nameOf(e.id), when: 'none this period', tone: 'warn', action: { label: 'Set', view: 'okrs' }, priority: 32 });
+      if (!list.some(o => o.employee_id === e.id)) out.push({ id: `okr-none-${e.id}`, title: 'Set OKRs', detail: nameOf(e.id), when: 'none this period', tone: 'warn', action: { label: 'Set', view: 'okrs', id: e.id }, priority: 32 });
     }
   }
   for (const o of list) {
-    if (o.status === 'draft') out.push({ id: `okr-draft-${o.id}`, title: 'Share OKR draft', detail: `${nameOf(o.employee_id)} · ${o.title}`, tone: 'info', action: { label: 'Open', view: 'okrs' }, priority: 34 });
+    if (o.status === 'draft') out.push({ id: `okr-draft-${o.id}`, title: 'Share OKR draft', detail: `${nameOf(o.employee_id)} · ${o.title}`, tone: 'info', action: { label: 'Open', view: 'okrs', id: o.employee_id }, priority: 34 });
     if (o.status === 'set') {
       const comments = (o.okr_comments || []).sort((a: any, b: any) => a.created_at.localeCompare(b.created_at));
       const last = comments[comments.length - 1];
       const empUser = empList.find(e => e.id === o.employee_id)?.user_id;
-      if (last && last.author_id === empUser) out.push({ id: `okr-reply-${o.id}`, title: 'Reply to comment', detail: `${nameOf(o.employee_id)} · ${o.title}`, when: ago(last.created_at), tone: 'info', action: { label: 'Reply', view: 'okrs' }, priority: 27 });
-      if (daysFrom(o.end_date) < 0) out.push({ id: `okr-lock-${o.id}`, title: 'Period ended — lock OKR', detail: `${nameOf(o.employee_id)} · ${o.title}`, when: `${plural(-daysFrom(o.end_date), 'day')} ago`, tone: 'warn', action: { label: 'Lock', view: 'okrs' }, priority: 24 });
+      if (last && last.author_id === empUser) out.push({ id: `okr-reply-${o.id}`, title: 'Reply to comment', detail: `${nameOf(o.employee_id)} · ${o.title}`, when: ago(last.created_at), tone: 'info', action: { label: 'Reply', view: 'okrs', id: o.employee_id }, priority: 27 });
+      if (daysFrom(o.end_date) < 0) out.push({ id: `okr-lock-${o.id}`, title: 'Period ended — lock OKR', detail: `${nameOf(o.employee_id)} · ${o.title}`, when: `${plural(-daysFrom(o.end_date), 'day')} ago`, tone: 'warn', action: { label: 'Lock', view: 'okrs', id: o.employee_id }, priority: 24 });
     }
   }
   return out;
@@ -231,7 +231,7 @@ async function teamLearningItems({ employeeId }: Ctx): Promise<QueueItem[]> {
   const out: QueueItem[] = [];
   for (const r of reps) {
     const over = ((asg || []) as any[]).filter(a => a.employee_id === r.id && daysFrom(a.due_date) < 0).length;
-    if (over) out.push({ id: `team-overdue-${r.id}`, title: `${plural(over, 'overdue course')}`, detail: (profiles || []).find((p: any) => p.id === r.user_id)?.full_name || 'Someone', tone: 'danger', action: { label: 'See', view: 'employees' }, priority: 21 });
+    if (over) out.push({ id: `team-overdue-${r.id}`, title: `${plural(over, 'overdue course')}`, detail: (profiles || []).find((p: any) => p.id === r.user_id)?.full_name || 'Someone', tone: 'danger', action: { label: 'See', view: 'employees', id: r.id }, priority: 21 });
   }
   return out;
 }
@@ -250,7 +250,7 @@ async function myItems({ profile, employeeId }: Ctx): Promise<QueueItem[]> {
   for (const a of (asgRes.data || []) as any[]) {
     if (!a.due_date) continue;
     const n = daysFrom(a.due_date);
-    if (n <= 7) out.push({ id: `my-asg-${a.id}`, title: n < 0 ? 'Overdue learning' : 'Learning due soon', detail: a.learning_courses?.title || a.learning_paths?.title || 'Assignment', when: dueText(a.due_date), tone: n < 0 ? 'danger' : 'warn', action: { label: 'Continue', view: 'my-learning' }, priority: n < 0 ? 5 : 14 });
+    if (n <= 7) out.push({ id: `my-asg-${a.id}`, title: n < 0 ? 'Overdue learning' : 'Learning due soon', detail: a.learning_courses?.title || a.learning_paths?.title || 'Assignment', when: dueText(a.due_date), tone: n < 0 ? 'danger' : 'warn', action: { label: 'Continue', view: 'my-learning', id: a.id }, priority: n < 0 ? 5 : 14 });
   }
   const jIds = ((journeyRes.data || []) as any[]).map(j => j.id);
   if (jIds.length) {

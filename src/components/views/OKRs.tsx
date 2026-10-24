@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoute, replaceRoute } from '../../lib/router';
 
 /*
  * OKRs. The manager sets them (draft → set), the employee reads and comments,
@@ -105,6 +106,13 @@ function TeamOkrs() {
   const [selected, setSelected] = useState<string | null>(null);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const route = useRoute();
+
+  // Deep link: #/okrs/<employee id>
+  useEffect(() => {
+    if (route.view !== 'okrs' || !route.id || people.length === 0) return;
+    if (people.some(p => p.employee_id === route.id)) { setSelected(route.id); setMobileDetail(true); }
+  }, [route.id, people.length]);
 
   const load = async () => {
     if (!org || !userProfile) return;
@@ -175,7 +183,7 @@ function TeamOkrs() {
               const avg = set.length ? Math.round(set.reduce((n, o) => n + o.overall_progress, 0) / set.length) : null;
               const isSel = p.employee_id === selected;
               return (
-                <button key={p.employee_id} onClick={() => { setSelected(p.employee_id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={p.employee_id} onClick={() => { setSelected(p.employee_id); setMobileDetail(true); replaceRoute('okrs', p.employee_id); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{p.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{list.length === 0 ? 'No OKRs' : `${set.length} set${drafts ? ` · ${drafts} draft` : ''}${list.length - set.length - drafts ? ` · ${list.length - set.length - drafts} locked` : ''}`}</p>

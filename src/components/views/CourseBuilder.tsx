@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import QuizBuilder from './course-builder/QuizBuilder';
 import LDCertifications from './course-builder/LDCertifications';
 import CourseAccessRequests from './CourseAccessRequests';
+import { useRoute, replaceRoute } from '../../lib/router';
 
 interface Course {
   id: string;
@@ -116,6 +117,16 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
   const [courseStats, setCourseStats] = useState<{ assigned: number; completed: number; paths: string[] } | null>(null);
   // On phones the list and the detail are two screens; this says which one is showing.
   const [mobileDetail, setMobileDetail] = useState(false);
+  const route = useRoute();
+
+  // Deep link: #/course-builder/<course id> or ?tab=requests|certifications
+  useEffect(() => {
+    if (!['course-builder', 'course-access-requests'].includes(route.view)) return;
+    const tab = route.params.tab as Tab | undefined;
+    if (tab && ['courses', 'certifications', 'requests'].includes(tab)) setActiveTab(tab);
+    if (route.id && courses.length) { const c = courses.find(x => x.id === route.id); if (c) { setActiveTab('courses'); setSelectedCourse(c); setMobileDetail(true); } }
+  }, [route.id, route.params.tab, courses.length]);
+
 
   useEffect(() => {
     if (userProfile?.organization_id) {
@@ -330,7 +341,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
 
   const isLDManager = userProfile?.role && ['admin', 'platform_admin', 'l_d_manager', 'org_admin', 'hr'].includes(userProfile.role);
 
-  const selectCourse = (course: Course) => { setSelectedCourse(course); setMobileDetail(true); };
+  const selectCourse = (course: Course) => { setSelectedCourse(course); setMobileDetail(true); replaceRoute('course-builder', course.id); };
 
   const newCourseButton = (assessment: boolean) => () => {
     setEditingCourse(null);

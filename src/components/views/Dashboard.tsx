@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useMessages, type OrgMessage } from '../../hooks/useMessages';
 import { loadWorkQueue, type QueueItem } from '../../lib/workQueue';
+import { navigate } from '../../lib/router';
 
 interface SetupStatus { brand: boolean; departments: number; designations: number; people: number; courses: number; inductions: number; }
 
@@ -225,7 +226,7 @@ function WorkQueue({ items, onNavigate }: { items: QueueItem[] | null; onNavigat
                 <span className="block text-sm text-gray-900 truncate">{it.title}</span>
                 <span className="block text-xs text-gray-500 truncate">{it.detail}{it.when ? ` · ${it.when}` : ''}</span>
               </span>
-              <button onClick={() => onNavigate?.(it.action.view)} className="h-7 px-2.5 rounded-md border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-50 transition flex-shrink-0">{it.action.label}</button>
+              <button onClick={() => navigate(it.action.view, it.action.id, it.action.params)} className="h-7 px-2.5 rounded-md border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-50 transition flex-shrink-0">{it.action.label}</button>
             </li>
           ))}
         </ul>

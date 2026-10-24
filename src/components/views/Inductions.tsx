@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoute, replaceRoute } from '../../lib/router';
 
 /*
  * Onboard → Inductions. Two tabs:
@@ -63,8 +64,16 @@ export default function Inductions() {
   const [showStart, setShowStart] = useState(false);
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [showDone, setShowDone] = useState(false);
+  const route = useRoute();
 
   useEffect(() => { if (org) load(); }, [org]);
+
+  // Deep link: #/inductions/<journey id>
+  useEffect(() => {
+    if (route.view !== 'inductions' || !route.id || journeys.length === 0) return;
+    const j = journeys.find(x => x.id === route.id);
+    if (j) { setTab('joiners'); setSelectedJourney(j.id); setMobileDetail(true); if (j.status === 'completed') setShowDone(true); }
+  }, [route.id, journeys.length]);
 
   const load = async () => {
     if (!org) return;
@@ -135,7 +144,7 @@ export default function Inductions() {
               const day = Math.max(0, daysBetween(j.start_date, new Date().toISOString().slice(0, 10)));
               const total = daysBetween(j.start_date, j.expected_end_date);
               return (
-                <button key={j.id} onClick={() => { setSelectedJourney(j.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={j.id} onClick={() => { setSelectedJourney(j.id); setMobileDetail(true); replaceRoute('inductions', j.id); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{j.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{j.employees?.designations?.title || j.induction_templates?.title || 'Induction'} · {j.status === 'completed' ? `Done ${fmt(j.actual_end_date)}` : j.status === 'not_started' ? `Starts ${fmt(j.start_date)}` : `Day ${day} of ${total}`}</p>

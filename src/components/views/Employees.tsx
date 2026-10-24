@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { callEdgeFunction, generateTemporaryPassword } from '../../lib/edgeFunctions';
 import { StartInductionModal } from './Inductions';
+import { useRoute, replaceRoute } from '../../lib/router';
 
 /*
  * People: one list of everyone in the organisation, and one page per person
@@ -98,6 +99,14 @@ export default function Employees() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetail, setMobileDetail] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const route = useRoute();
+
+  // Deep link: #/employees/<profile id or employee id>
+  useEffect(() => {
+    if (route.view !== 'employees' || !route.id || people.length === 0) return;
+    const p = people.find(x => x.id === route.id || x.employee_id === route.id);
+    if (p) { setSelectedId(p.id); setMobileDetail(true); }
+  }, [route.id, people.length]);
   const [createdCredentials, setCreatedCredentials] = useState<{ name: string; email: string; password: string } | null>(null);
 
   useEffect(() => { if (userProfile?.organization_id) loadData(); }, [userProfile?.organization_id]);
@@ -163,7 +172,7 @@ export default function Employees() {
   }, [people, search, stageFilter, teamOnly, myEmployeeId]);
 
   const selected = people.find(p => p.id === selectedId) || null;
-  const select = (id: string) => { setSelectedId(id); setMobileDetail(true); };
+  const select = (id: string) => { setSelectedId(id); setMobileDetail(true); replaceRoute('employees', id); };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-stratefix-yellow border-t-transparent rounded-full animate-spin" /></div>;

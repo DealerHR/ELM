@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginForm from './components/auth/LoginForm';
 import ChangePasswordForm from './components/auth/ChangePasswordForm';
 import { supabase } from './lib/supabase';
+import { parseHash, navigate } from './lib/router';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import MobileNav from './components/layout/MobileNav';
@@ -34,7 +35,12 @@ import UserProfile from './components/views/UserProfile';
 
 function AppContent() {
   const { user, userProfile } = useAuth();
-  const [activeView, setActiveView] = useState('dashboard');
+  // The address bar is the source of truth for which screen is open (#/view/:id).
+  const [activeView, setActiveViewState] = useState(() => {
+    const r = parseHash();
+    return r.view.startsWith('assess') ? 'dashboard' : r.view;
+  });
+  const setActiveView = (view: string) => navigate(view);
   const [isPortalRoute, setIsPortalRoute] = useState(() => {
     const hash = window.location.hash;
     return hash === '#/assess' || hash.startsWith('#/assess');
@@ -55,8 +61,13 @@ function AppContent() {
       const hash = window.location.hash;
       setIsPortalRoute(hash === '#/assess' || hash.startsWith('#/assess'));
     };
+    const syncView = () => {
+      const r = parseHash();
+      if (!r.view.startsWith('assess')) setActiveViewState(r.view);
+    };
     window.addEventListener('hashchange', checkRoute);
-    return () => window.removeEventListener('hashchange', checkRoute);
+    window.addEventListener('hashchange', syncView);
+    return () => { window.removeEventListener('hashchange', checkRoute); window.removeEventListener('hashchange', syncView); };
   }, []);
 
   if (isPortalRoute) {
