@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, FolderOpen, FileText, Download, Eye, CreditCard as Edit2, Trash2, Upload, X, CheckSquare, Square, Users, Building2, Briefcase, Globe, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import ContentViewer, { kindFor } from '../viewers/ContentViewer';
 
 interface Resource {
   id: string;
@@ -504,18 +505,23 @@ export default function Repository() {
     loadAll();
   };
 
+  const [viewing, setViewing] = useState<{ resource: Resource; url: string } | null>(null);
+
+  // View opens the file right here; Download fetches it. No new tabs, so phones
+  // always have a way back.
   const handleOpenResource = async (resource: Resource, download = false) => {
     if (!resource.file_path) return;
     const { data, error } = await supabase.storage
       .from('resources')
-      .createSignedUrl(resource.file_path, 3600);
+      .createSignedUrl(resource.file_path, 3600, download ? { download: resource.title } : undefined);
     if (error || !data?.signedUrl) return;
-    const a = document.createElement('a');
-    a.href = data.signedUrl;
-    if (download) a.download = resource.title;
-    else a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.click();
+    if (download) {
+      const a = document.createElement('a');
+      a.href = data.signedUrl; a.download = resource.title; a.rel = 'noopener noreferrer';
+      a.click();
+      return;
+    }
+    setViewing({ resource, url: data.signedUrl });
   };
 
   const getInitialFromResource = (r: Resource): typeof blankForm => ({
@@ -691,6 +697,19 @@ export default function Repository() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col" role="dialog" aria-label={viewing.resource.title}>
+          <div className="h-12 flex-shrink-0 flex items-center gap-3 px-3 border-b border-gray-200">
+            <button onClick={() => setViewing(null)} className="h-9 px-2 -ml-1 inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">
+              <X className="w-4 h-4" /> Close
+            </button>
+            <p className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0">{viewing.resource.title}</p>
+            <button onClick={() => handleOpenResource(viewing.resource, true)} className="h-9 px-2 inline-flex items-center gap-1 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"><Download className="w-4 h-4" /><span className="hidden sm:inline">Download</span></button>
+          </div>
+          <ContentViewer kind={kindFor(viewing.resource.file_path, viewing.resource.file_type === 'video' ? 'video' : null, null)} url={viewing.url} title={viewing.resource.title} fileName={viewing.resource.file_path?.split('/').pop()} dark={false} />
         </div>
       )}
     </div>

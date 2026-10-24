@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ChevronDown,
   BookOpen, Clock, CheckCircle, Target, ArrowRight, Award, BarChart2,
@@ -227,7 +227,8 @@ function QuizModal({ courseId, courseTitle, assignmentId, employeeId, moduleId, 
 
       const percentage = max > 0 ? Math.round((score / max) * 100) : 100;
       setResult({ score, max, percentage });
-      onComplete(score, max);
+      // Only a pass completes the module.
+      if (percentage >= QUIZ_PASS_MARK) onComplete(score, max);
     } finally {
       setSubmitting(false);
     }
@@ -264,10 +265,15 @@ function QuizModal({ courseId, courseTitle, assignmentId, employeeId, moduleId, 
           <h3 className="text-lg font-bold text-gray-900 mb-1">{passed ? 'Well done!' : 'Keep Learning'}</h3>
           <p className="text-sm text-gray-500 mb-4">{moduleTitle || courseTitle}</p>
           <div className={`text-4xl font-bold mb-1 ${passed ? 'text-emerald-700' : 'text-red-600'}`}>{result.percentage}%</div>
-          <p className="text-sm text-gray-500 mb-6">{result.score} / {result.max} points</p>
-          <button onClick={onClose} className="w-full py-2.5 bg-stratefix-yellow text-stratefix-black rounded-lg font-semibold text-sm hover:bg-yellow-500 transition">
-            Done
-          </button>
+          <p className="text-sm text-gray-500 mb-6">{result.score} / {result.max} points{passed ? '' : ` · ${QUIZ_PASS_MARK}% needed to pass`}</p>
+          {passed ? (
+            <button onClick={onClose} className="w-full py-2.5 bg-stratefix-yellow text-stratefix-black rounded-lg font-semibold text-sm hover:bg-yellow-500 transition">Done</button>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition">Later</button>
+              <button onClick={() => { setResult(null); setAnswers({}); setCurrent(0); }} className="flex-1 py-2.5 bg-stratefix-yellow text-stratefix-black rounded-lg font-semibold text-sm hover:bg-yellow-500 transition">Try again</button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -775,9 +781,13 @@ export default function MyLearning() {
     modules: CourseModule[]; completedModuleIds: Set<string>; readOnly?: boolean;
   } | null>(null);
 
+  // Only the very first load shows the spinner. Later refreshes (after a module is
+  // marked done, a quiz passed, the player closed) happen in place, otherwise the
+  // open course player would be unmounted and reopen at module 1.
+  const hasLoadedRef = useRef(false);
   const load = useCallback(async () => {
     if (!userProfile) return;
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     setError('');
     try {
       const { data: emp } = await supabase
@@ -869,6 +879,7 @@ export default function MyLearning() {
       console.error('Could not load learning assignments', e);
       setError('Failed to load your learning assignments.');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   }, [userProfile]);
@@ -982,7 +993,7 @@ export default function MyLearning() {
     if (!course) return;
 
     await handleModuleComplete(module.id, course.id, assignment.id);
-    setActiveModuleQuiz(null);
+    // The modal shows the result itself and closes on its own.
   };
 
   const handleTakeQuiz = (assignment: LearningAssignment) => {
@@ -1023,21 +1034,28 @@ export default function MyLearning() {
 
   // What the learner has actually done, regardless of the stored assignment status.
   // A path counts as in progress as soon as any of its courses has progress.
+  // One definition of "this course is done", used by every list and the continue card:
+  // the course row says completed, L&D certified it, or every required module is done.
+  const courseDone = (courseId: string): boolean => {
+    const p = progressMap[courseId];
+    if (p?.status === 'completed' || certifiedCourseIds.has(courseId)) return true;
+    const mods = courseModulesMap[courseId] || [];
+    return mods.length > 0 && isCourseComplete(mods, moduleProgressMap[courseId] || new Set<string>());
+  };
+  const courseStarted = (courseId: string): boolean => {
+    const p = progressMap[courseId];
+    return !!p || (moduleProgressMap[courseId]?.size || 0) > 0;
+  };
+
   const effectiveStatus = (a: LearningAssignment): 'assigned' | 'in_progress' | 'completed' => {
     if (a.status === 'completed' || certifiedAssignmentIds.has(a.id)) return 'completed';
     if (a.learning_path_id) {
       const items = pathItemsMap[a.learning_path_id] || [];
-      const started = items.some(it => {
-        const p = progressMap[it.course_id];
-        return (p && (p.status === 'in_progress' || p.status === 'completed' || (p.progress_percentage || 0) > 0))
-          || certifiedCourseIds.has(it.course_id)
-          || (moduleProgressMap[it.course_id]?.size || 0) > 0;
-      });
-      if (started) return 'in_progress';
+      if (items.length > 0 && items.every(it => courseDone(it.course_id))) return 'completed';
+      if (items.some(it => courseStarted(it.course_id))) return 'in_progress';
     } else if (a.course_id) {
-      const p = progressMap[a.course_id];
-      if (a.status === 'in_progress' || (p && (p.status === 'in_progress' || (p.progress_percentage || 0) > 0))
-          || (moduleProgressMap[a.course_id]?.size || 0) > 0) return 'in_progress';
+      if (courseDone(a.course_id)) return 'completed';
+      if (a.status === 'in_progress' || courseStarted(a.course_id)) return 'in_progress';
     }
     return a.status === 'in_progress' ? 'in_progress' : 'assigned';
   };
@@ -1072,6 +1090,7 @@ export default function MyLearning() {
     for (const a of assignments) {
       if (effectiveStatus(a) === 'completed') continue;
       if (a.course_id && a.learning_courses) {
+        if (courseDone(a.course_id)) continue;
         const mods = courseModulesMap[a.course_id] || [];
         const done = moduleProgressMap[a.course_id] || new Set<string>();
         const prog = progressMap[a.course_id];
@@ -1089,10 +1108,10 @@ export default function MyLearning() {
         for (const it of items) {
           const c = it.learning_courses; if (!c) continue;
           const prog = progressMap[it.course_id];
-          if (prog?.status === 'completed' || certifiedCourseIds.has(it.course_id)) continue;
+          if (courseDone(it.course_id)) continue;
           if (it.prerequisite_item_id) {
             const pre = items.find(p => p.id === it.prerequisite_item_id);
-            if (pre && !(progressMap[pre.course_id]?.status === 'completed' || certifiedCourseIds.has(pre.course_id))) continue;
+            if (pre && !courseDone(pre.course_id)) continue;
           }
           const mods = courseModulesMap[it.course_id] || [];
           const done = moduleProgressMap[it.course_id] || new Set<string>();

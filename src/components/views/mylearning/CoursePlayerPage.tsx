@@ -6,6 +6,7 @@ import {
   ClipboardList, AlignLeft, CheckCircle, Award, PartyPopper, ArrowRight,
 } from 'lucide-react';
 import { supabase, QUIZ_PASS_MARK } from '../../../lib/supabase';
+import ContentViewer, { kindFor, getYouTubeEmbedUrl } from '../../viewers/ContentViewer';
 
 export interface CourseModule {
   id: string;
@@ -45,7 +46,6 @@ interface CoursePlayerPageProps {
   onModuleComplete: (moduleId: string, courseId: string, assignmentId: string) => Promise<void>;
 }
 
-const OFFICE_EXTENSIONS = ['.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx'];
 
 /** Which modules must be done for the course to count as complete. */
 export function requiredModules(modules: CourseModule[]): CourseModule[] {
@@ -82,28 +82,6 @@ function formatMinutes(min: number) {
   return `${Math.floor(min / 60)}h ${min % 60 > 0 ? `${min % 60}m` : ''}`.trim();
 }
 
-function getYouTubeEmbedUrl(url: string): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
-      let videoId: string | null = null;
-      if (u.hostname.includes('youtu.be')) {
-        videoId = u.pathname.slice(1).split('?')[0];
-      } else if (u.pathname.includes('/embed/')) {
-        videoId = u.pathname.split('/embed/')[1].split('?')[0];
-      } else if (u.pathname.includes('/shorts/')) {
-        videoId = u.pathname.split('/shorts/')[1].split('?')[0];
-      } else {
-        videoId = u.searchParams.get('v');
-      }
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
-      }
-    }
-  } catch {}
-  return null;
-}
 
 export default function CoursePlayerPage({
   courseTitle,
@@ -128,7 +106,6 @@ export default function CoursePlayerPage({
   const [fileError, setFileError] = useState('');
   const [saving, setSaving] = useState(false);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
-  const [openingPdf, setOpeningPdf] = useState(false);
   // Module the learner tried to move to while the current one is not yet done.
   const [pendingNav, setPendingNav] = useState<number | null>(null);
   const [showCompleteScreen, setShowCompleteScreen] = useState(false);
@@ -141,13 +118,9 @@ export default function CoursePlayerPage({
   const [quizResult, setQuizResult] = useState<{ score: number; max: number; percentage: number } | null>(null);
 
   const quizScrollRef = useRef<HTMLDivElement>(null);
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
 
   const mod = modules[currentIdx];
   const isVideo = mod?.content_type === 'video';
-  const isPdf = mod?.content_file_name?.toLowerCase().endsWith('.pdf');
-  const fileExt = (mod?.content_file_name?.toLowerCase().match(/\.[a-z0-9]+$/) || [''])[0];
-  const isOffice = OFFICE_EXTENSIONS.includes(fileExt);
   const hasFile = Boolean(mod?.content_file_path);
   const hasLink = Boolean(mod?.content_url);
   const isQuiz = mod?.content_type === 'quiz';
@@ -237,19 +210,6 @@ export default function CoursePlayerPage({
     if (idx >= 0) goTo(idx);
   };
 
-  const handleOpenPdf = async () => {
-    if (!mod?.content_file_path) return;
-    setOpeningPdf(true);
-    try {
-      const { data, error } = await supabase.storage
-        .from('course-content')
-        .createSignedUrl(mod.content_file_path, 300);
-      if (!error && data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-    } finally {
-      setOpeningPdf(false);
-    }
-  };
-
   // Marks the current module done. Returns the new completed set.
   const markCurrentDone = async (): Promise<Set<string>> => {
     if (!mod || readOnly) return completedIds;
@@ -331,10 +291,13 @@ export default function CoursePlayerPage({
       const percentage = max > 0 ? Math.round((score / max) * 100) : 100;
       setQuizResult({ score, max, percentage });
 
-      await onModuleComplete(mod.id, courseId, assignmentId);
-      const updated = new Set([...completedIds, mod.id]);
-      setCompletedIds(updated);
-      if (isCourseComplete(modules, updated)) setTimeout(() => setShowCompleteScreen(true), 1500);
+      // Only a pass completes the module; a fail can be retried.
+      if (percentage >= QUIZ_PASS_MARK) {
+        await onModuleComplete(mod.id, courseId, assignmentId);
+        const updated = new Set([...completedIds, mod.id]);
+        setCompletedIds(updated);
+        if (isCourseComplete(modules, updated)) setTimeout(() => setShowCompleteScreen(true), 1500);
+      }
     } finally {
       setQuizSubmitting(false);
     }
@@ -410,9 +373,18 @@ export default function CoursePlayerPage({
               <p className={`text-4xl font-bold mb-1 ${passed ? 'text-emerald-400' : 'text-amber-400'}`}>{pct}%</p>
               <p className="text-sm text-gray-300 mb-1">{quizResult.score} / {quizResult.max} points</p>
               <p className={`text-base font-semibold mb-3 ${passed ? 'text-emerald-300' : 'text-amber-300'}`}>
-                {passed ? 'Well done!' : 'Keep practising!'}
+                {passed ? 'Well done!' : `You need ${QUIZ_PASS_MARK}% to pass`}
               </p>
-              <p className="text-xs text-gray-500">This module has been marked as complete.</p>
+              {passed ? (
+                <p className="text-xs text-gray-500">This module has been marked as complete.</p>
+              ) : (
+                <button
+                  onClick={() => { setQuizResult(null); setQuizAnswers({}); }}
+                  className="mt-1 px-5 py-2.5 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition"
+                >
+                  Try again
+                </button>
+              )}
             </div>
           </div>
         );
@@ -520,114 +492,19 @@ export default function CoursePlayerPage({
     }
 
     if (hasFile && fileUrl) {
-      if (isVideo) {
-        return (
-          <div className="flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
-            <video
-              key={fileUrl}
-              src={fileUrl}
-              controls
-              autoPlay={false}
-              onEnded={() => { if (!isDone && !readOnly) handleMarkDone(); }}
-              className="w-full h-full object-contain"
-              style={{ maxHeight: '100%' }}
-            />
-          </div>
-        );
-      }
-      if (isPdf) {
-        if (isMobile) {
-          return (
-            <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 bg-gray-900">
-              <div className="w-16 h-16 rounded-2xl bg-gray-800 border border-gray-700 flex items-center justify-center">
-                <FileText className="w-8 h-8 text-red-400" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-100">{mod.content_file_name}</p>
-                <p className="text-xs text-gray-500 mt-1">PDF Document</p>
-              </div>
-              <button
-                onClick={handleOpenPdf}
-                disabled={openingPdf}
-                className="flex items-center gap-2 px-6 py-3 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition disabled:opacity-60"
-              >
-                {openingPdf ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                {openingPdf ? 'Opening...' : 'Open PDF'}
-              </button>
-            </div>
-          );
-        }
-        return (
-          <div className="flex-1 min-h-0 bg-gray-900 overflow-hidden">
-            <iframe
-              src={fileUrl}
-              title={mod.title}
-              className="w-full h-full border-0"
-            />
-          </div>
-        );
-      }
-      if (isOffice) {
-        // Microsoft's online viewer renders Word, PowerPoint and Excel files from a public link.
-        // The signed URL is valid for an hour, which is plenty for a viewing session.
-        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-        return (
-          <div className="flex-1 min-h-0 bg-gray-900 flex flex-col overflow-hidden">
-            <iframe
-              key={viewerUrl}
-              src={viewerUrl}
-              title={mod.title}
-              className="w-full flex-1 border-0 bg-white"
-              allowFullScreen
-            />
-            <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-gray-900 border-t border-gray-800">
-              <span className="text-xs text-gray-500 truncate">{mod.content_file_name}</span>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition flex-shrink-0"
-              >
-                <ExternalLink className="w-3 h-3" /> Open in new tab
-              </a>
-            </div>
-          </div>
-        );
-      }
       return (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 bg-gray-900">
-          <div className="w-14 h-14 rounded-2xl bg-gray-800 flex items-center justify-center">
-            <FileText className="w-7 h-7 text-gray-400" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-gray-200">{mod.content_file_name}</p>
-            <p className="text-xs text-gray-500 mt-1">Click below to open</p>
-          </div>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 text-gray-900 text-sm font-bold rounded-xl hover:bg-yellow-300 transition"
-          >
-            <ExternalLink className="w-4 h-4" /> Open File
-          </a>
-        </div>
+        <ContentViewer
+          kind={isVideo ? 'video' : kindFor(mod.content_file_name, mod.content_type, null)}
+          url={fileUrl}
+          title={mod.title}
+          fileName={mod.content_file_name}
+          onVideoEnded={() => { if (!isDone && !readOnly) handleMarkDone(); }}
+        />
       );
     }
 
     if (!hasFile && youtubeEmbedUrl) {
-      return (
-        <div className="flex-1 min-h-0 bg-black overflow-hidden">
-          <iframe
-            key={youtubeEmbedUrl}
-            src={youtubeEmbedUrl}
-            title={mod.title}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        </div>
-      );
+      return <ContentViewer kind="youtube" link={mod.content_url} title={mod.title} />;
     }
 
     if (!hasFile && hasLink && !youtubeEmbedUrl) {
@@ -658,7 +535,7 @@ export default function CoursePlayerPage({
           <BookOpen className="w-7 h-7 text-gray-400" />
         </div>
         <p className="text-sm font-semibold text-gray-300">No content</p>
-        <p className="text-xs text-gray-500 text-center max-w-xs">Mark as done once you have completed this activity.</p>
+        <p className="text-xs text-gray-500 text-center max-w-xs">Use Next or Finish when you have completed this activity.</p>
       </div>
     );
   };
