@@ -604,9 +604,11 @@ interface PathRowProps {
   onCompleteCourse: (progressId: string, assignmentId: string) => void;
   onOpenCourse: (courseId: string, courseTitle: string, assignmentId: string, readOnly?: boolean) => void;
   saving: string | null;
+  /** Direct course assignments the learner also has for courses in this path (shown once, here). */
+  directDuplicates?: Record<string, LearningAssignment>;
 }
 
-function PathRow({ assignment, pathItems, progress, certifiedCourseIds, completedPathIds, courseModulesMap, moduleProgressMap, onStartCourse, onCompleteCourse, onOpenCourse, saving }: PathRowProps) {
+function PathRow({ assignment, pathItems, progress, certifiedCourseIds, completedPathIds, courseModulesMap, moduleProgressMap, onStartCourse, onCompleteCourse, onOpenCourse, saving, directDuplicates = {} }: PathRowProps) {
   const path = assignment.learning_paths;
   const total = pathItems.length;
   const completedCount = pathItems.filter(it => progress[it.course_id]?.status === 'completed' || certifiedCourseIds.has(it.course_id)).length;
@@ -614,7 +616,12 @@ function PathRow({ assignment, pathItems, progress, certifiedCourseIds, complete
   const pathStatus: RowStatus = assignment.status === 'completed' || (total > 0 && completedCount === total) ? 'completed' : started ? 'in_progress' : 'not_started';
   const [expanded, setExpanded] = useState(pathStatus !== 'completed');
   if (!path) return null;
-  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+  // Partial credit: a path with one course that is 14% done reads 14%, not 0%.
+  const pct = total > 0 ? Math.round(pathItems.reduce((sum, it) => {
+    const mods = courseModulesMap[it.course_id] || [];
+    const st = courseState({ course: it.learning_courses || ({} as LearningCourse), prog: progress[it.course_id], certified: certifiedCourseIds.has(it.course_id), modules: mods, completedModuleIds: moduleProgressMap[it.course_id] || new Set<string>() });
+    return sum + st.pct;
+  }, 0) / total) : 0;
   const hours = pathItems.reduce((s, it) => s + (it.learning_courses?.duration_hours || 0), 0);
   const overdue = assignment.due_date && new Date(assignment.due_date) < new Date() && pathStatus !== 'completed';
 
@@ -703,6 +710,7 @@ function PathRow({ assignment, pathItems, progress, certifiedCourseIds, complete
                       !current && st.status !== 'completed' && course.duration_hours ? `${course.duration_hours} h` : null,
                       course.delivery_type && course.delivery_type !== 'self_paced' ? DELIVERY_META[course.delivery_type]?.label : null,
                       item.is_mandatory && st.status !== 'completed' ? 'Required' : null,
+                      directDuplicates[item.course_id] ? `Also assigned directly${directDuplicates[item.course_id].due_date ? ` · due ${new Date(directDuplicates[item.course_id].due_date!).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : null,
                     ].filter(Boolean).join(' · ')}
                   </p>
                 </div>
@@ -1031,8 +1039,15 @@ export default function MyLearning() {
     assignments.filter(a => a.learning_path_id && a.status === 'completed').map(a => a.learning_path_id!)
   );
 
-  const courseAssignments = assignments.filter(a => a.course_id && !a.learning_path_id);
   const pathAssignments = assignments.filter(a => a.learning_path_id);
+  // A course assigned directly AND reachable through one of the learner's paths is shown once, under the path.
+  const coursesInMyPaths = new Set(pathAssignments.flatMap(a => (pathItemsMap[a.learning_path_id!] || []).map(it => it.course_id)));
+  const directDuplicates: Record<string, LearningAssignment> = {};
+  const courseAssignments = assignments.filter(a => {
+    if (!a.course_id || a.learning_path_id) return false;
+    if (coursesInMyPaths.has(a.course_id)) { directDuplicates[a.course_id] = a; return false; }
+    return true;
+  });
 
   // What the learner has actually done, regardless of the stored assignment status.
   // A path counts as in progress as soon as any of its courses has progress.
@@ -1242,6 +1257,7 @@ export default function MyLearning() {
                     onCompleteCourse={handleComplete}
                     onOpenCourse={handleOpenCourse}
                     saving={saving}
+                    directDuplicates={directDuplicates}
                   />
                 ))}
               </ul>
