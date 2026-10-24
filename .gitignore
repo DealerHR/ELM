@@ -25,3 +25,6 @@ dist-ssr
 # preview harness
 src/__preview.tsx
 preview.html
+
+# Bolt writes a timestamped copy of each migration it applies; the originals are the source.
+supabase/migrations/*.sql.sql

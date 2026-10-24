@@ -23,7 +23,6 @@ import CourseBuilder from './components/views/CourseBuilder';
 import LearningPathBuilder from './components/views/LearningPathBuilder';
 import MyLearning from './components/views/MyLearning';
 import AssignLearning from './components/views/AssignLearning';
-import Reviews from './components/views/Reviews';
 import Settings from './components/views/Settings';
 import GrowthProfileGuide from './components/views/GrowthProfileGuide';
 import SkillMapping from './components/views/SkillMapping';
@@ -133,8 +132,8 @@ function AppContent() {
         return <CourseBuilder initialTab="requests" />;
       case 'okrs':
         return <OKRs learnerMode={learnerMode} />;
-      case 'reviews':
-        return <Reviews />;
+      case 'reviews': // retired stub; performance lives in OKRs
+        return <OKRs learnerMode={learnerMode} />;
       case 'repository':
         return <Repository />;
       case 'user-management': // folded into People; old links still land somewhere useful

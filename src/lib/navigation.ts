@@ -145,7 +145,6 @@ const EXTRA_TITLES: Record<string, string> = {
   'user-profile': 'My Profile',
   'dashboard': 'Dashboard',
   'user-management': 'People',
-  'reviews': 'Reviews',
   'course-access-requests': 'Courses',
   'skills': 'Skills',
 };
