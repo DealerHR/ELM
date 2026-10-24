@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase';
 import { useMessages, type OrgMessage } from '../../hooks/useMessages';
 import { loadWorkQueue, type QueueItem } from '../../lib/workQueue';
 
+interface SetupStatus { brand: boolean; departments: number; designations: number; people: number; courses: number; inductions: number; }
+
 /*
  * One dashboard file, four variants: learner, manager, L&D/admin, HR.
  * Everything is built from the same small set of pieces (Strip, Panel, Row) so the
@@ -173,6 +175,33 @@ function Announcements({ messages, unreadCount, markAsRead, onNavigate, limit = 
   );
 }
 
+/** First-run checklist for a new organisation; disappears once every step is done. */
+function SetupChecklist({ status, isAdmin, onNavigate }: { status: SetupStatus; isAdmin: boolean; onNavigate?: (v: string) => void }) {
+  const steps = [
+    { done: status.brand, label: 'Add your logo and brand colours', view: 'settings', adminOnly: true },
+    { done: status.departments > 0, label: 'Create departments', view: 'departments' },
+    { done: status.designations > 0, label: 'Create designations (job titles)', view: 'designations' },
+    { done: status.people > 1, label: 'Add your people', view: 'employees' },
+    { done: status.inductions > 0, label: 'Build an induction checklist', view: 'inductions' },
+    { done: status.courses > 0, label: 'Publish your first course', view: 'course-builder' },
+  ].filter(s => !s.adminOnly || isAdmin);
+  const remaining = steps.filter(s => !s.done);
+  if (remaining.length === 0) return null;
+  return (
+    <Panel title="Set up your organisation" count={remaining.length}>
+      <ul className="divide-y divide-gray-100">
+        {steps.map(st => (
+          <li key={st.view} className="px-3.5 py-2.5 flex items-center gap-3">
+            {st.done ? <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" /> : <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" />}
+            <span className={`flex-1 text-sm ${st.done ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{st.label}</span>
+            {!st.done && <button onClick={() => onNavigate?.(st.view)} className="h-7 px-2.5 rounded-md border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-50 transition">Go</button>}
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
+
 /** What is waiting for this person, with one action per row. */
 function WorkQueue({ items, onNavigate }: { items: QueueItem[] | null; onNavigate?: (v: string) => void }) {
   const [showAll, setShowAll] = useState(false);
@@ -280,6 +309,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
   const [directReports, setDirectReports] = useState<DirectReport[]>([]);
   const [pendingOKRs, setPendingOKRs] = useState<PendingOKR[]>([]);
   const [queue, setQueue] = useState<QueueItem[] | null>(null);
+  const [setup, setSetup] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadAll(); }, [userProfile?.id, learnerMode]);
@@ -294,6 +324,9 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
       isHr ? loadHrStats() : Promise.resolve(),
       isManager ? loadTeam() : Promise.resolve(),
       loadQueue(),
+      (isLdOrAdmin || isHr) && userProfile.organization_id
+        ? supabase.rpc('organization_setup_status', { p_org: userProfile.organization_id }).then(({ data }) => setSetup((data as SetupStatus) || null))
+        : Promise.resolve(),
     ]);
     setLoading(false);
   };
@@ -424,7 +457,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
     );
   }
 
-  const shared = { messages, unreadCount, markAsRead, markAllAsRead, pinned, onNavigate, name: userProfile?.full_name, queue };
+  const shared = { messages, unreadCount, markAsRead, markAllAsRead, pinned, onNavigate, name: userProfile?.full_name, queue, setup, isAdminRole: role === 'admin' };
 
   if (isLdOrAdmin) return <LdDashboard {...shared} orgStats={orgStats} courseStats={courseStats} isAdmin={role === 'admin'} />;
   if (isHr) return <HrDashboard {...shared} orgStats={orgStats} hrStats={hrStats} />;
@@ -437,6 +470,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
 interface SharedProps {
   messages: OrgMessage[]; unreadCount: number; markAsRead: (id: string) => void; markAllAsRead: () => void;
   pinned: PinnedResource[]; onNavigate?: (v: string) => void; name?: string; queue: QueueItem[] | null;
+  setup?: SetupStatus | null; isAdminRole?: boolean;
 }
 
 function learningSummary(assignments: Assignment[]) {
@@ -453,7 +487,7 @@ function ContinueCard({ item, onNavigate }: { item: Assignment; onNavigate?: (v:
   const due = dueLabel(item.due_date);
   return (
     <button onClick={() => onNavigate?.('my-learning')} className="w-full text-left bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition">
-      <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center flex-shrink-0"><Play className="w-4 h-4 ml-0.5" /></span>
+      <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-brand-on-primary flex items-center justify-center flex-shrink-0"><Play className="w-4 h-4 ml-0.5" /></span>
       <span className="min-w-0 flex-1">
         <span className="block text-xs text-gray-500">Continue where you left off</span>
         <span className="block text-sm font-medium text-gray-900 truncate">{item.learning_courses?.title || item.learning_paths?.title}</span>
@@ -587,7 +621,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
   );
 }
 
-function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { orgStats: OrgStats; courseStats: CourseStats; isAdmin: boolean }) {
+function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue, setup }: SharedProps & { orgStats: OrgStats; courseStats: CourseStats; isAdmin: boolean }) {
   const pct = orgStats.total ? Math.round((orgStats.completed / orgStats.total) * 100) : 0;
   const sub = orgStats.total
     ? `${orgStats.learners} learner${orgStats.learners === 1 ? '' : 's'} with assignments · ${pct}% completed${orgStats.overdue ? ` · ${orgStats.overdue} overdue` : ''}.`
@@ -604,6 +638,7 @@ function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, ma
         { label: 'Courses live', value: courseStats.published, hint: courseStats.draft ? `${courseStats.draft} in draft` : undefined, onClick: () => onNavigate?.('course-builder') },
         { label: 'Learning paths', value: courseStats.paths, onClick: () => onNavigate?.('learning-path-builder') },
       ]} />
+      {setup && <SetupChecklist status={setup} isAdmin={isAdmin} onNavigate={onNavigate} />}
       <WorkQueue items={queue} onNavigate={onNavigate} />
       <Shortcuts onNavigate={onNavigate} items={[
         { label: 'Course Builder', sub: 'Create and edit content', view: 'course-builder', icon: BookOpen },
@@ -627,7 +662,7 @@ function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, ma
   );
 }
 
-function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { orgStats: OrgStats; hrStats: HrStats }) {
+function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue, setup, isAdminRole }: SharedProps & { orgStats: OrgStats; hrStats: HrStats }) {
   const pct = orgStats.total ? Math.round((orgStats.completed / orgStats.total) * 100) : 0;
   const sub = hrStats.inProcess
     ? `${hrStats.inProcess} candidate${hrStats.inProcess === 1 ? '' : 's'} in process${hrStats.offers ? `, ${hrStats.offers} offer${hrStats.offers === 1 ? '' : 's'} out` : ''}.`
@@ -644,6 +679,7 @@ function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pin
         { label: 'Learning completed', value: `${pct}%`, hint: `${orgStats.completed} of ${orgStats.total}` },
         { label: 'Learning overdue', value: orgStats.overdue, tone: 'danger' },
       ]} />
+      {setup && <SetupChecklist status={setup} isAdmin={!!isAdminRole} onNavigate={onNavigate} />}
       <WorkQueue items={queue} onNavigate={onNavigate} />
       <Shortcuts onNavigate={onNavigate} items={[
         { label: 'Candidates', sub: 'Recruitment pipeline', view: 'candidates', icon: UserCheck },

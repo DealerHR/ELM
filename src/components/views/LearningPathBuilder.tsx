@@ -227,7 +227,7 @@ export default function LearningPathBuilder() {
         </div>
         <button
           onClick={openCreatePath}
-          className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition font-semibold text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold text-sm"
         >
           <Plus className="w-4 h-4" /> New Path
         </button>
@@ -292,7 +292,7 @@ export default function LearningPathBuilder() {
                   </button>
                   <button
                     onClick={openAddItem}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition text-xs font-semibold"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-xs font-semibold"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Course
                   </button>
@@ -305,7 +305,7 @@ export default function LearningPathBuilder() {
                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm font-semibold text-gray-600 mb-1">No courses in this path</p>
                     <p className="text-xs text-gray-400 mb-4">Add courses to build this learning journey</p>
-                    <button onClick={openAddItem} className="flex items-center gap-1.5 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-500 transition mx-auto">
+                    <button onClick={openAddItem} className="flex items-center gap-1.5 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 transition mx-auto">
                       <Plus className="w-4 h-4" /> Add First Course
                     </button>
                   </div>
@@ -436,7 +436,7 @@ export default function LearningPathBuilder() {
               </label>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowPathModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 text-sm font-semibold">
+                <button type="submit" className="flex-1 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 text-sm font-semibold">
                   {editingPath ? 'Save Changes' : 'Create Path'}
                 </button>
               </div>
@@ -518,7 +518,7 @@ export default function LearningPathBuilder() {
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowItemModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 text-sm font-semibold">
+                <button type="submit" className="flex-1 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 text-sm font-semibold">
                   {editingItem ? 'Save Changes' : 'Add Course'}
                 </button>
               </div>

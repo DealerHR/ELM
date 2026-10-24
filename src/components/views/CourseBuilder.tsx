@@ -378,7 +378,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
             <button onClick={newCourseButton(true)} className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
               <ClipboardList className="w-3.5 h-3.5" /> New assessment
             </button>
-            <button onClick={newCourseButton(false)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold">
+            <button onClick={newCourseButton(false)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold">
               <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New course</span><span className="sm:hidden">New</span>
             </button>
           </div>
@@ -432,7 +432,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
                     key={course.id}
                     onClick={() => selectCourse(course)}
                     aria-current={isSelected ? 'true' : undefined}
-                    className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSelected ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}
+                    className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSelected ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
@@ -535,7 +535,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
                     <div className="flex-1" />
                     <button
                       onClick={() => { setEditingModule(null); setModuleForm({ ...BLANK_MODULE, content_type: selectedCourse.is_assessment ? 'quiz' : 'video' }); setUploadFile(null); setShowModuleForm(true); }}
-                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"
+                      className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add module
                     </button>
@@ -773,7 +773,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
               )}
 
               <div className="flex gap-3 pt-2">
-                <button type="submit" className="flex-1 bg-stratefix-yellow text-stratefix-black py-2 rounded-lg hover:bg-yellow-500 transition font-semibold text-sm">
+                <button type="submit" className="flex-1 bg-stratefix-yellow text-brand-on-primary py-2 rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold text-sm">
                   {editingCourse ? 'Save Changes' : courseForm.is_assessment ? 'Create Assessment' : 'Create Course'}
                 </button>
                 <button type="button" onClick={() => { setShowCourseForm(false); setEditingCourse(null); }} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm">
@@ -935,7 +935,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
               </label>
 
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={uploading} className="flex-1 bg-stratefix-yellow text-stratefix-black py-2 rounded-lg hover:bg-yellow-500 transition font-semibold text-sm disabled:opacity-50">
+                <button type="submit" disabled={uploading} className="flex-1 bg-stratefix-yellow text-brand-on-primary py-2 rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold text-sm disabled:opacity-50">
                   {uploading ? 'Uploading...' : editingModule ? 'Save Changes' : 'Add Module'}
                 </button>
                 <button type="button" onClick={() => { setShowModuleForm(false); setEditingModule(null); setUploadFile(null); }} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm">

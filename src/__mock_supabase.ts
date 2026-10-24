@@ -57,6 +57,7 @@ const FIXTURES: Record<string, any[]> = {
   ],
   ld_certifications: [],
   learning_paths: [{ id: 'p1', title: 'Professional Listening', organization_id: ORG }],
+  organizations: [{ id: ORG, name: 'Acme Motors', logo_url: null, status: 'active', plan: 'standard', settings: { brand: { primary: '#0F766E', on_primary: '#FFFFFF', nav: '#0B1F2A', accent: '#F59E0B' }, induction_days: 60, probation_months: 6 } }],
   course_access_requests: [{ id: 'ar1', organization_id: ORG, employee_id: 'user-2', status: 'pending', requested_at: '2026-10-22T08:00:00Z', learning_courses: { title: 'Aeris launch: product walkthrough' } }],
   departments: [{ id: 'd1', organization_id: ORG, name: 'Sales' }, { id: 'd2', organization_id: ORG, name: 'Service' }],
   designations: [{ id: 'd1', organization_id: ORG, title: 'Showroom Manager' }, { id: 'd2', organization_id: ORG, title: 'Sales Executive' }],
@@ -134,7 +135,7 @@ function builder(table: string) {
 
 export const supabase: any = {
   from: builder,
-  rpc: async () => ({ data: true, error: null }),
+  rpc: async (fn: string) => fn === 'organization_setup_status' ? { data: { brand: true, departments: 2, designations: 2, people: 5, courses: 0, inductions: 2 }, error: null } : { data: true, error: null },
   auth: {
     getSession: async () => ({ data: { session: { user: { id: 'user-1', email: PROFILE.email } } } }),
     getUser: async () => ({ data: { user: { id: 'user-1', email: PROFILE.email } } }),

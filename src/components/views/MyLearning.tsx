@@ -267,11 +267,11 @@ function QuizModal({ courseId, courseTitle, assignmentId, employeeId, moduleId, 
           <div className={`text-4xl font-bold mb-1 ${passed ? 'text-emerald-700' : 'text-red-600'}`}>{result.percentage}%</div>
           <p className="text-sm text-gray-500 mb-6">{result.score} / {result.max} points{passed ? '' : ` · ${QUIZ_PASS_MARK}% needed to pass`}</p>
           {passed ? (
-            <button onClick={onClose} className="w-full py-2.5 bg-stratefix-yellow text-stratefix-black rounded-lg font-semibold text-sm hover:bg-yellow-500 transition">Done</button>
+            <button onClick={onClose} className="w-full py-2.5 bg-stratefix-yellow text-brand-on-primary rounded-lg font-semibold text-sm hover:bg-stratefix-yellow/90 transition">Done</button>
           ) : (
             <div className="flex gap-2">
               <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition">Later</button>
-              <button onClick={() => { setResult(null); setAnswers({}); setCurrent(0); }} className="flex-1 py-2.5 bg-stratefix-yellow text-stratefix-black rounded-lg font-semibold text-sm hover:bg-yellow-500 transition">Try again</button>
+              <button onClick={() => { setResult(null); setAnswers({}); setCurrent(0); }} className="flex-1 py-2.5 bg-stratefix-yellow text-brand-on-primary rounded-lg font-semibold text-sm hover:bg-stratefix-yellow/90 transition">Try again</button>
             </div>
           )}
         </div>
@@ -482,7 +482,7 @@ function ProgressBar({ pct, className = '' }: { pct: number; className?: string 
 function ActionButton({ kind, children, onClick, disabled }: { kind: 'primary' | 'secondary' | 'link'; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   const base = 'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-semibold transition disabled:opacity-50 whitespace-nowrap';
   const cls = kind === 'primary'
-    ? 'bg-stratefix-yellow text-stratefix-black hover:bg-yellow-400'
+    ? 'bg-stratefix-yellow text-brand-on-primary hover:bg-stratefix-yellow/90'
     : kind === 'secondary'
       ? 'border border-gray-300 text-gray-800 hover:bg-gray-50'
       : 'text-blue-800 hover:underline px-1';
@@ -736,7 +736,7 @@ function ContinueCard({ target, onOpen, onStart }: { target: ContinueTarget; onO
       aria-label={target.started ? 'Continue learning' : 'Start learning'}
       className="w-full text-left bg-white border border-gray-200 border-l-4 border-l-stratefix-yellow rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition"
     >
-      <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center flex-shrink-0"><ArrowRight className="w-4 h-4" /></span>
+      <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-brand-on-primary flex items-center justify-center flex-shrink-0"><ArrowRight className="w-4 h-4" /></span>
       <span className="flex-1 min-w-0">
         <span className="block text-xs text-gray-500">{target.started ? 'Continue where you left off' : 'Start here'}</span>
         <span className="block text-sm font-semibold text-gray-900 truncate">{target.courseTitle}</span>

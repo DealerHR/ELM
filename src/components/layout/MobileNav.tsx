@@ -37,9 +37,9 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
       <button
         onClick={() => go(item.id)}
         aria-current={active ? 'page' : undefined}
-        className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 ${active ? 'text-stratefix-black' : 'text-gray-500'}`}
+        className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 ${active ? 'text-gray-900' : 'text-gray-500'}`}
       >
-        <span className={`w-10 h-6 rounded-full flex items-center justify-center ${active ? 'bg-stratefix-yellow' : ''}`}>
+        <span className={`w-10 h-6 rounded-full flex items-center justify-center ${active ? 'bg-stratefix-yellow text-brand-on-primary' : ''}`}>
           <Icon className="w-5 h-5" strokeWidth={active ? 2.2 : 1.8} />
         </span>
         <span className={`text-[11px] leading-tight truncate max-w-full ${active ? 'font-semibold' : 'font-medium'}`}>{item.shortLabel || item.label}</span>
@@ -57,9 +57,9 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
         <button
           onClick={() => setMoreOpen(true)}
           aria-expanded={moreOpen}
-          className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 ${activeInMore ? 'text-stratefix-black' : 'text-gray-500'}`}
+          className={`flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.5 ${activeInMore ? 'text-gray-900' : 'text-gray-500'}`}
         >
-          <span className={`w-10 h-6 rounded-full flex items-center justify-center ${activeInMore ? 'bg-stratefix-yellow' : ''}`}>
+          <span className={`w-10 h-6 rounded-full flex items-center justify-center ${activeInMore ? 'bg-stratefix-yellow text-brand-on-primary' : ''}`}>
             <MoreHorizontal className="w-5 h-5" strokeWidth={activeInMore ? 2.2 : 1.8} />
           </span>
           <span className={`text-[11px] leading-tight ${activeInMore ? 'font-semibold' : 'font-medium'}`}>More</span>
@@ -91,7 +91,7 @@ export default function MobileNav({ activeView, onViewChange, learnerMode, onTog
                         <button
                           key={item.id}
                           onClick={() => go(item.id)}
-                          className={`w-full h-12 flex items-center gap-3 px-3 rounded-xl text-left ${active ? 'bg-yellow-50 text-stratefix-black font-semibold' : 'text-gray-700 active:bg-gray-100'}`}
+                          className={`w-full h-12 flex items-center gap-3 px-3 rounded-xl text-left ${active ? 'bg-stratefix-yellow/10 text-gray-900 font-semibold' : 'text-gray-700 active:bg-gray-100'}`}
                         >
                           <Icon className="w-5 h-5 text-gray-500" strokeWidth={1.8} />
                           <span className="text-sm">{item.label}</span>

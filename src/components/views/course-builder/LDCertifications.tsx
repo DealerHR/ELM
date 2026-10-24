@@ -155,7 +155,7 @@ export default function LDCertifications({ organizationId }: LDCertificationsPro
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === f ? 'bg-stratefix-yellow text-stratefix-black' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === f ? 'bg-stratefix-yellow text-brand-on-primary' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {f === 'pending' && <Clock className="w-3 h-3" />}
               {f === 'certified' && <CheckCircle2 className="w-3 h-3" />}

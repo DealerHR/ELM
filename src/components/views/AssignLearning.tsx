@@ -229,7 +229,7 @@ export default function AssignLearning() {
         </div>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition font-semibold text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold text-sm"
         >
           <Plus className="w-4 h-4" />
           New Assignment
@@ -530,7 +530,7 @@ export default function AssignLearning() {
                 <button
                   type="submit"
                   disabled={saving || selectedEmployeeIds.length === 0 || !selectedContentId}
-                  className="flex-1 flex items-center justify-center gap-2 bg-stratefix-yellow text-stratefix-black py-2.5 rounded-lg hover:bg-yellow-500 transition font-semibold text-sm disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 bg-stratefix-yellow text-brand-on-primary py-2.5 rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold text-sm disabled:opacity-50"
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                   Assign to {selectedEmployeeIds.length || '...'} Employee{selectedEmployeeIds.length !== 1 ? 's' : ''}

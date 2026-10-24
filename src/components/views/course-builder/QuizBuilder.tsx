@@ -150,7 +150,7 @@ export default function QuizBuilder({ moduleId, moduleName, onClose }: QuizBuild
           <div className="flex items-center gap-2">
             <button
               onClick={openCreate}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-stratefix-yellow text-stratefix-black rounded-lg text-xs font-semibold hover:bg-yellow-500 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stratefix-yellow text-brand-on-primary rounded-lg text-xs font-semibold hover:bg-stratefix-yellow/90 transition"
             >
               <Plus className="w-3.5 h-3.5" /> Add Question
             </button>
@@ -168,7 +168,7 @@ export default function QuizBuilder({ moduleId, moduleName, onClose }: QuizBuild
               <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-sm font-semibold text-gray-600 mb-1">No questions yet</p>
               <p className="text-xs text-gray-400 mb-4">Add questions to build this quiz</p>
-              <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-500 transition mx-auto">
+              <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 transition mx-auto">
                 <Plus className="w-4 h-4" /> Add First Question
               </button>
             </div>
@@ -330,7 +330,7 @@ export default function QuizBuilder({ moduleId, moduleName, onClose }: QuizBuild
                 )}
 
                 <div className="flex gap-3 pt-1">
-                  <button type="submit" disabled={saving} className="flex-1 bg-stratefix-yellow text-stratefix-black py-2.5 rounded-lg font-semibold text-sm hover:bg-yellow-500 transition disabled:opacity-50">
+                  <button type="submit" disabled={saving} className="flex-1 bg-stratefix-yellow text-brand-on-primary py-2.5 rounded-lg font-semibold text-sm hover:bg-stratefix-yellow/90 transition disabled:opacity-50">
                     {saving ? 'Saving...' : editingQuestion ? 'Save Changes' : 'Add Question'}
                   </button>
                   <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-200 transition">

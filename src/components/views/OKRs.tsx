@@ -151,7 +151,7 @@ function TeamOkrs() {
         <span className="text-xs text-gray-500 hidden sm:inline">{okrs.filter(o => o.status === 'set').length} set · {okrs.filter(o => o.status === 'draft').length} draft</span>
         <div className="flex-1" />
         {person && canManageSelected && (
-          <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New OKR for {person.full_name.split(' ')[0]}</span><span className="sm:hidden">New OKR</span></button>
+          <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">New OKR for {person.full_name.split(' ')[0]}</span><span className="sm:hidden">New OKR</span></button>
         )}
       </div>
 
@@ -175,7 +175,7 @@ function TeamOkrs() {
               const avg = set.length ? Math.round(set.reduce((n, o) => n + o.overall_progress, 0) / set.length) : null;
               const isSel = p.employee_id === selected;
               return (
-                <button key={p.employee_id} onClick={() => { setSelected(p.employee_id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={p.employee_id} onClick={() => { setSelected(p.employee_id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{p.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{list.length === 0 ? 'No OKRs' : `${set.length} set${drafts ? ` · ${drafts} draft` : ''}${list.length - set.length - drafts ? ` · ${list.length - set.length - drafts} locked` : ''}`}</p>
@@ -209,7 +209,7 @@ function TeamOkrs() {
                   <Target className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
                   <p className="text-sm font-medium text-gray-700">No OKRs yet</p>
                   <p className="text-xs text-gray-500 mt-0.5 mb-3">Write the objective and two to four measurable key results. It stays a draft until you share it.</p>
-                  {canManageSelected && <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New OKR</button>}
+                  {canManageSelected && <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New OKR</button>}
                 </div>
               )}
               {(['draft', 'set', 'locked', 'cancelled'] as const).map(st => {
@@ -349,7 +349,7 @@ function OkrCard({ okr, canManage, onChanged, collapsed = false }: { okr: OKR; c
           {canManage && (
             <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center gap-2 flex-wrap">
               {okr.status === 'draft' && <>
-                <button onClick={share} disabled={busy || !(okr.key_results || []).length} title={!(okr.key_results || []).length ? 'Add at least one key result first' : ''} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition"><Send className="w-3.5 h-3.5" /> Share with employee</button>
+                <button onClick={share} disabled={busy || !(okr.key_results || []).length} title={!(okr.key_results || []).length ? 'Add at least one key result first' : ''} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition"><Send className="w-3.5 h-3.5" /> Share with employee</button>
                 <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 h-8 px-3 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium hover:bg-white transition"><Pencil className="w-3.5 h-3.5" /> Edit</button>
                 <div className="flex-1" />
                 <button onClick={remove} disabled={busy} className="inline-flex items-center gap-1.5 h-8 px-3 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
@@ -430,7 +430,7 @@ function KeyResultForm({ okrId, onDone, onCancel }: { okrId: string; onDone: () 
       {err && <p className="sm:col-span-5 text-xs text-red-700">{err}</p>}
       <div className="sm:col-span-5 flex gap-2 justify-end">
         <button onClick={onCancel} className="h-8 px-3 text-gray-700 text-xs font-medium hover:bg-gray-100 rounded-lg">Cancel</button>
-        <button onClick={save} disabled={saving} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-xs font-semibold disabled:opacity-50">{saving ? 'Adding…' : 'Add key result'}</button>
+        <button onClick={save} disabled={saving} className="h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg text-xs font-semibold disabled:opacity-50">{saving ? 'Adding…' : 'Add key result'}</button>
       </div>
     </div>
   );
@@ -475,7 +475,7 @@ function OkrFormModal({ okr, employeeId, personName, onClose, onSaved }: { okr?:
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
           <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : okr ? 'Save' : 'Create draft'}</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition">{saving ? 'Saving…' : okr ? 'Save' : 'Create draft'}</button>
         </div>
       </form>
     </div>

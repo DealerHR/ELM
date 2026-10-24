@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode, Dispatch, SetStateAction } from 'react';
 import { User } from '@supabase/supabase-js';
+import { applyBrand, type OrganizationInfo } from '../lib/brand';
 import { supabase, UserProfile } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
+  /** The signed-in person's organisation (name, logo, brand, status). Null for platform admins. */
+  organization: OrganizationInfo | null;
+  refreshOrganization: () => Promise<void>;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
@@ -58,6 +62,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(initialUser);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(initialProfile);
   const [loading, setLoading] = useState(false);
+  const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
+
+  // Loads the organisation and paints its brand. Safe to call again after settings change.
+  const loadOrganization = async (orgId: string | null | undefined) => {
+    if (!orgId) { setOrganization(null); applyBrand(null); return; }
+    const { data } = await supabase.from('organizations').select('id, name, logo_url, status, plan, settings').eq('id', orgId).maybeSingle();
+    const org = (data as OrganizationInfo | null) || null;
+    setOrganization(org);
+    applyBrand(org?.settings?.brand);
+  };
+  const refreshOrganization = async () => { await loadOrganization(userProfile?.organization_id); };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -122,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUserProfile(data);
         setCachedProfile(data);
+        loadOrganization(data.organization_id);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -175,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, signIn, signUp, signOut, setUserProfile }}>
+    <AuthContext.Provider value={{ user, userProfile, organization, refreshOrganization, loading, signIn, signUp, signOut, setUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

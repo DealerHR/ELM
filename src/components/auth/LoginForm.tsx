@@ -120,7 +120,7 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-stratefix-yellow text-stratefix-black py-3 rounded-lg font-bold hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-stratefix-yellow text-brand-on-primary py-3 rounded-lg font-bold hover:bg-stratefix-yellow/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Sign Up' : 'Sign In')}
             </button>

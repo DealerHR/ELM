@@ -131,7 +131,7 @@ function AppContent() {
       case 'inductions':
         return <Inductions />;
       case 'settings':
-        return <Settings />;
+        return <Settings onNavigate={setActiveView} />;
       case 'super-admin':
         return <SuperAdminDashboard />;
       case 'messages':

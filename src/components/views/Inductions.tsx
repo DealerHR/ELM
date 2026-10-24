@@ -109,9 +109,9 @@ export default function Inductions() {
         </div>
         <div className="flex-1" />
         {tab === 'joiners' ? (
-          <button onClick={() => setShowStart(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> Start induction</button>
+          <button onClick={() => setShowStart(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> Start induction</button>
         ) : (
-          <button onClick={() => setShowNewTemplate(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New template</button>
+          <button onClick={() => setShowNewTemplate(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold"><Plus className="w-3.5 h-3.5" /> New template</button>
         )}
       </div>
 
@@ -135,7 +135,7 @@ export default function Inductions() {
               const day = Math.max(0, daysBetween(j.start_date, new Date().toISOString().slice(0, 10)));
               const total = daysBetween(j.start_date, j.expected_end_date);
               return (
-                <button key={j.id} onClick={() => { setSelectedJourney(j.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={j.id} onClick={() => { setSelectedJourney(j.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{j.full_name}</p>
                     <p className="text-xs text-gray-500 truncate">{j.employees?.designations?.title || j.induction_templates?.title || 'Induction'} · {j.status === 'completed' ? `Done ${fmt(j.actual_end_date)}` : j.status === 'not_started' ? `Starts ${fmt(j.start_date)}` : `Day ${day} of ${total}`}</p>
@@ -150,7 +150,7 @@ export default function Inductions() {
             }) : (listItems as Template[]).map(t => {
               const isSel = t.id === selectedTemplate;
               return (
-                <button key={t.id} onClick={() => { setSelectedTemplate(t.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={t.id} onClick={() => { setSelectedTemplate(t.id); setMobileDetail(true); }} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${t.is_active ? 'text-gray-900' : 'text-gray-400'}`}>{t.title}</p>
                     <p className="text-xs text-gray-500 truncate">{t.designations?.title || 'All designations'} · {t.duration_days} days{t.learning_paths?.title ? ` · ${t.learning_paths.title}` : ''}</p>
@@ -297,7 +297,7 @@ function JourneyDetail({ journey, onBack, onChanged }: { journey: Journey; onBac
             <div><label className={labelCls}>Due</label><input type="date" className={inputCls} value={newTask.due_date} onChange={e => setNewTask(t => ({ ...t, due_date: e.target.value }))} /></div>
             <div className="flex items-center gap-2 h-9">
               <label className="text-xs text-gray-700 inline-flex items-center gap-1.5"><input type="checkbox" checked={newTask.is_required} onChange={e => setNewTask(t => ({ ...t, is_required: e.target.checked }))} /> Required</label>
-              <button onClick={addTask} disabled={busy || !newTask.title.trim()} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-xs font-semibold disabled:opacity-50">Add</button>
+              <button onClick={addTask} disabled={busy || !newTask.title.trim()} className="h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg text-xs font-semibold disabled:opacity-50">Add</button>
             </div>
           </div>
         )}
@@ -412,7 +412,7 @@ function TemplateDetail({ template, designations, paths, onBack, onChanged, onDe
             <div><label className={labelCls}>Due by day</label><input type="number" min={0} className={inputCls} value={newTask.due_day} onChange={e => setNewTask(t => ({ ...t, due_day: Number(e.target.value) }))} /></div>
             <div className="flex items-center gap-2 h-9">
               <label className="text-xs text-gray-700 inline-flex items-center gap-1.5"><input type="checkbox" checked={newTask.is_required} onChange={e => setNewTask(t => ({ ...t, is_required: e.target.checked }))} /> Required</label>
-              <button onClick={addTask} disabled={busy || !newTask.title.trim()} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-xs font-semibold disabled:opacity-50">Add</button>
+              <button onClick={addTask} disabled={busy || !newTask.title.trim()} className="h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg text-xs font-semibold disabled:opacity-50">Add</button>
             </div>
           </div>
         )}
@@ -448,8 +448,8 @@ function TemplateDetail({ template, designations, paths, onBack, onChanged, onDe
 /* ---------- modals ---------- */
 
 function TemplateFormModal({ organizationId, template, designations, paths, onClose, onSaved }: { organizationId: string; template?: Template; designations: Lookup[]; paths: Lookup[]; onClose: () => void; onSaved: (id: string) => void }) {
-  const { userProfile } = useAuth();
-  const [form, setForm] = useState({ title: template?.title || '', designation_id: template?.designation_id || '', duration_days: template?.duration_days || 90, learning_path_id: template?.learning_path_id || '', description: template?.description || '' });
+  const { userProfile, organization } = useAuth();
+  const [form, setForm] = useState({ title: template?.title || '', designation_id: template?.designation_id || '', duration_days: template?.duration_days || Number(organization?.settings?.induction_days) || 90, learning_path_id: template?.learning_path_id || '', description: template?.description || '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const submit = async (e: React.FormEvent) => {
@@ -475,7 +475,7 @@ function TemplateFormModal({ organizationId, template, designations, paths, onCl
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
           <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : template ? 'Save' : 'Create'}</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition">{saving ? 'Saving…' : template ? 'Save' : 'Create'}</button>
         </div>
       </form>
     </div>
@@ -514,7 +514,7 @@ export function StartInductionModal({ people, templates, defaultEmployeeId, onCl
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
           <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving || !employeeId} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Starting…' : 'Start'}</button>
+          <button type="submit" disabled={saving || !employeeId} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition">{saving ? 'Starting…' : 'Start'}</button>
         </div>
       </form>
     </div>

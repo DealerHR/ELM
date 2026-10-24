@@ -10,6 +10,8 @@ interface Organization {
   industry?: string;
   size?: string;
   created_at: string;
+  status?: 'active' | 'suspended';
+  plan?: string;
   admin_email?: string;
   admin_name?: string;
 }
@@ -460,6 +462,18 @@ export default function Organizations() {
                 </div>
                 <div className="flex gap-1">
                   <button
+                    onClick={async () => {
+                      const next = org.status === 'suspended' ? 'active' : 'suspended';
+                      if (next === 'suspended' && !confirm(`Suspend ${org.name}? Their people can sign in but see no data until reactivated. Nothing is deleted.`)) return;
+                      await supabase.from('organizations').update({ status: next }).eq('id', org.id);
+                      loadOrganizations();
+                    }}
+                    className={`px-2 h-7 text-xs font-medium rounded-lg transition ${org.status === 'suspended' ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-gray-500 hover:text-amber-700 hover:bg-amber-50'}`}
+                    title={org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                  >
+                    {org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                  </button>
+                  <button
                     onClick={() => setEditingOrg(org)}
                     className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
                     title="Edit"
@@ -476,7 +490,7 @@ export default function Organizations() {
                 </div>
               </div>
 
-              <h3 className="text-sm font-bold text-gray-900 mb-1">{org.name}</h3>
+              <h3 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">{org.name}{org.status === 'suspended' && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800">Suspended</span>}</h3>
 
               <div className="space-y-0.5 mb-3">
                 {org.industry && <p className="text-xs text-gray-500">{org.industry}</p>}

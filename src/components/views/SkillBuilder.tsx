@@ -567,7 +567,7 @@ export default function SkillBuilder({ embedded = false }: { embedded?: boolean 
         <p className="text-sm text-gray-500">{embedded ? 'Each skill carries up to 20 assessment questions.' : 'Create skills with up to 20 assessment questions each.'}</p>
         <button
           onClick={() => setShowSkillForm(true)}
-          className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold flex-shrink-0"
+          className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold flex-shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           New skill
@@ -734,7 +734,7 @@ export default function SkillBuilder({ embedded = false }: { embedded?: boolean 
                         setShowQuestionForm(true);
                       }}
                       disabled={questions.length >= 20}
-                      className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-5 h-5" />
                       Add Question
@@ -899,7 +899,7 @@ export default function SkillBuilder({ embedded = false }: { embedded?: boolean 
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-stratefix-yellow text-stratefix-black py-2.5 rounded-lg hover:bg-yellow-500 transition font-semibold"
+                  className="flex-1 bg-stratefix-yellow text-brand-on-primary py-2.5 rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold"
                 >
                   Create Skill
                 </button>
@@ -962,7 +962,7 @@ export default function SkillBuilder({ embedded = false }: { embedded?: boolean 
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 bg-stratefix-yellow text-stratefix-black py-2 rounded-lg hover:bg-yellow-500 transition font-semibold"
+                  className="flex-1 bg-stratefix-yellow text-brand-on-primary py-2 rounded-lg hover:bg-stratefix-yellow/90 transition font-semibold"
                 >
                   {editingQuestion ? 'Update' : 'Add'} Question
                 </button>

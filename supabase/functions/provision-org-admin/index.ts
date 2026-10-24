@@ -65,6 +65,7 @@ Deno.serve(async (req: Request) => {
       full_name: admin.full_name,
       role: "admin",
       is_active: true,
+      must_change_password: true, // the temporary password is shown once to the platform admin
     });
 
     if (profileError) {

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default brand (Stratefix). Overwritten per organisation at sign-in. */
+:root {
+  --brand-primary: 253 185 19;
+  --brand-on-primary: 0 0 0;
+  --brand-nav: 0 0 0;
+  --brand-accent: 30 64 175;
+}
+
 html, body {
   overflow-x: hidden;
   max-width: 100vw;

@@ -176,7 +176,7 @@ export default function Employees() {
         <span className="text-sm font-semibold text-gray-900 hidden sm:inline">{counts.all} {counts.all === 1 ? 'person' : 'people'}</span>
         <div className="flex-1" />
         {canEdit && (
-          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold">
+          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg hover:bg-stratefix-yellow/90 transition text-sm font-semibold">
             <Plus className="w-3.5 h-3.5" /> Add person
           </button>
         )}
@@ -214,7 +214,7 @@ export default function Employees() {
               const isSel = p.id === selectedId;
               const st = stageMeta(p.lifecycle_stage);
               return (
-                <button key={p.id} onClick={() => select(p.id)} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-yellow-50 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
+                <button key={p.id} onClick={() => select(p.id)} aria-current={isSel ? 'true' : undefined} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-l-[3px] transition ${isSel ? 'bg-stratefix-yellow/10 border-stratefix-yellow' : 'border-transparent hover:bg-gray-50'}`}>
                   <Avatar person={p} size={8} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${p.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{p.full_name}</p>
@@ -518,7 +518,7 @@ function ProfileTab({ person, people, departments, designations, canEdit, canEdi
 
       {canEdit && (
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={save} disabled={!dirty || saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Saving…' : 'Save changes'}</button>
+          <button onClick={save} disabled={!dirty || saving} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition">{saving ? 'Saving…' : 'Save changes'}</button>
           {saved && !dirty && <span className="text-xs text-emerald-700 inline-flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Saved</span>}
           <div className="flex-1" />
           {person.employee_id && person.lifecycle_stage !== 'exited' && !leaving && (
@@ -582,7 +582,7 @@ function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] 
       {!open && canEdit && person.employee_id && person.lifecycle_stage !== 'exited' && (
         <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3">
           <p className="text-xs text-gray-600">{rows.length ? 'No induction in progress.' : 'No induction has been started for this person.'}</p>
-          <button onClick={() => setShowStart(true)} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 transition whitespace-nowrap">Start induction</button>
+          <button onClick={() => setShowStart(true)} className="h-8 px-3 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 transition whitespace-nowrap">Start induction</button>
         </div>
       )}
       {rows.length === 0 && !canEdit && <EmptyTab icon={ClipboardList} text="No induction has been started for this person." />}
@@ -746,7 +746,7 @@ function AddPersonModal({ departments, designations, managers, organizationId, o
         </div>
         <div className="px-4 pb-4 flex gap-2 justify-end">
           <button type="button" onClick={onClose} className="h-9 px-3 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
-          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 disabled:opacity-50 transition">{saving ? 'Creating…' : 'Create account'}</button>
+          <button type="submit" disabled={saving} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 disabled:opacity-50 transition">{saving ? 'Creating…' : 'Create account'}</button>
         </div>
       </form>
     </div>
@@ -765,7 +765,7 @@ function CredentialsModal({ name, email, password, onClose }: { name: string; em
         <pre className="text-sm bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap break-all">{text}</pre>
         <div className="flex gap-2 justify-end">
           <button onClick={copy} className="inline-flex items-center gap-1.5 h-9 px-3 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-50 transition">{copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}{copied ? 'Copied' : 'Copy'}</button>
-          <button onClick={onClose} className="h-9 px-4 bg-stratefix-yellow text-stratefix-black rounded-lg text-sm font-semibold hover:bg-yellow-400 transition">Done</button>
+          <button onClick={onClose} className="h-9 px-4 bg-stratefix-yellow text-brand-on-primary rounded-lg text-sm font-semibold hover:bg-stratefix-yellow/90 transition">Done</button>
         </div>
       </div>
     </div>

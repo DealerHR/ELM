@@ -9,7 +9,7 @@ interface HeaderProps {
 
 /** A 48 px bar: the current page's name on the left, notifications and profile on the right. */
 export default function Header({ activeView, onNavigate }: HeaderProps) {
-  const { userProfile } = useAuth();
+  const { userProfile, organization } = useAuth();
   const title = pageTitle(activeView);
 
   const initials = userProfile?.full_name
@@ -22,7 +22,9 @@ export default function Header({ activeView, onNavigate }: HeaderProps) {
   return (
     <header className="h-12 flex-shrink-0 bg-white border-b border-gray-200 px-4 lg:px-5 flex items-center gap-3">
       <div className="min-w-0 flex items-baseline gap-2">
-        <span className="lg:hidden text-xs font-bold text-stratefix-black">ELM</span>
+        {organization?.logo_url
+          ? <img src={organization.logo_url} alt="" className="lg:hidden w-6 h-6 rounded object-contain flex-shrink-0" />
+          : <span className="lg:hidden text-xs font-bold text-gray-900 truncate max-w-[90px]">{organization?.name || 'ELM'}</span>}
         <h2 className="text-base font-semibold text-gray-900 truncate">{title}</h2>
       </div>
 

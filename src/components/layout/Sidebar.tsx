@@ -14,7 +14,7 @@ interface SidebarProps {
  * pointer is over it. Hidden on phones and tablets, where MobileNav takes over.
  */
 export default function Sidebar({ activeView, onViewChange, learnerMode, onToggleLearnerMode }: SidebarProps) {
-  const { userProfile, signOut } = useAuth();
+  const { userProfile, organization, signOut } = useAuth();
   const role = userProfile?.role || 'employee';
   const isEmployee = role === 'employee';
   const sections = sectionsFor(role, learnerMode);
@@ -30,7 +30,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
         title={item.label}
         aria-current={active ? 'page' : undefined}
         className={`w-full h-10 flex items-center gap-3 rounded-lg px-2 transition-colors ${
-          active ? 'bg-stratefix-yellow text-stratefix-black' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+          active ? 'bg-stratefix-yellow text-brand-on-primary' : 'text-gray-400 hover:bg-white/10 hover:text-white'
         }`}
       >
         <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={1.8} />
@@ -48,10 +48,14 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
     >
       {/* Brand */}
       <div className="h-12 flex items-center gap-3 px-3 flex-shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center text-xs font-bold flex-shrink-0">S</div>
+        {organization?.logo_url ? (
+          <img src={organization.logo_url} alt="" className="w-8 h-8 rounded-lg object-contain bg-white flex-shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-stratefix-yellow text-brand-on-primary flex items-center justify-center text-xs font-bold flex-shrink-0">{(organization?.name || 'E')[0].toUpperCase()}</div>
+        )}
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap overflow-hidden">
-          <p className="text-sm font-semibold leading-tight">ELM Platform</p>
-          <p className="text-xs text-stratefix-yellow leading-tight">Stratefix</p>
+          <p className="text-sm font-semibold leading-tight truncate max-w-[180px]">{organization?.name || 'ELM Platform'}</p>
+          <p className="text-xs text-stratefix-yellow leading-tight">{organization ? 'ELM' : 'Stratefix'}</p>
         </div>
       </div>
 
@@ -95,7 +99,7 @@ export default function Sidebar({ activeView, onViewChange, learnerMode, onToggl
           {userProfile?.avatar_url ? (
             <img src={userProfile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
           ) : (
-            <span className="w-7 h-7 rounded-full bg-stratefix-yellow text-stratefix-black text-xs font-bold flex items-center justify-center flex-shrink-0">{initials}</span>
+            <span className="w-7 h-7 rounded-full bg-stratefix-yellow text-brand-on-primary text-xs font-bold flex items-center justify-center flex-shrink-0">{initials}</span>
           )}
           <span className="min-w-0 text-left opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <span className="block text-sm font-medium text-white truncate">{userProfile?.full_name}</span>
