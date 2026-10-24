@@ -37,6 +37,9 @@ interface Assignment {
   assigned_date: string;
   due_date: string | null;
   status: string;
+  assigned_by?: string | null;
+  created_at?: string;
+  assigned_by_name?: string;
   employees: { full_name: string; designation?: string } | null;
   learning_courses: { title: string } | null;
   learning_paths: { title: string } | null;
@@ -91,7 +94,7 @@ export default function AssignLearning() {
         supabase
           .from('employee_learning_assignments')
           .select(`
-            id, employee_id, course_id, learning_path_id, assigned_date, due_date, status,
+            id, employee_id, course_id, learning_path_id, assigned_date, due_date, status, assigned_by, created_at,
             employees(id, user_id, designations:designation_id(title)),
             learning_courses(title),
             learning_paths(title)
@@ -129,8 +132,12 @@ export default function AssignLearning() {
       if (assignmentsRes.error) throw assignmentsRes.error;
       // Names live on user_profiles, not employees; attach them here.
       const byEmp = new Map(normalizedEmployees.map(e => [e.id, e]));
+      const byIds = [...new Set(((assignmentsRes.data as any[]) || []).map(a => a.assigned_by).filter(Boolean))] as string[];
+      const { data: assigners } = byIds.length ? await supabase.from('user_profiles').select('id, full_name').in('id', byIds) : { data: [] as any[] };
+      const nameOfAssigner = (id?: string | null) => id ? (((assigners || []) as any[]).find(p => p.id === id)?.full_name || 'Unknown user') : 'System';
       setAssignments(((assignmentsRes.data as any[]) || []).map(a => ({
         ...a,
+        assigned_by_name: nameOfAssigner(a.assigned_by),
         employees: byEmp.get(a.employee_id)
           ? { full_name: byEmp.get(a.employee_id)!.full_name, designation: byEmp.get(a.employee_id)!.designation }
           : { full_name: '—', designation: (a.employees as any)?.designations?.title },
@@ -335,7 +342,8 @@ export default function AssignLearning() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-gray-500 text-xs">
-                    {new Date(a.assigned_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    <span className="block">{new Date(a.assigned_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span className="block text-gray-400" title={a.created_at ? `Created ${new Date(a.created_at).toLocaleString('en-GB')}` : ''}>by {a.assigned_by_name}{a.created_at ? ` · ${new Date(a.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}</span>
                   </td>
                   <td className="px-5 py-3">
                     {a.due_date ? (
