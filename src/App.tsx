@@ -10,6 +10,7 @@ import Dashboard from './components/views/Dashboard';
 import Organizations from './components/views/Organizations';
 import Departments from './components/views/Departments';
 import Employees from './components/views/Employees';
+import Inductions from './components/views/Inductions';
 import Designations from './components/views/Designations';
 import Candidates from './components/views/Candidates';
 import Skills from './components/views/Skills';
@@ -127,6 +128,8 @@ function AppContent() {
         return <Repository />;
       case 'user-management': // folded into People; old links still land somewhere useful
         return <Employees />;
+      case 'inductions':
+        return <Inductions />;
       case 'settings':
         return <Settings />;
       case 'super-admin':

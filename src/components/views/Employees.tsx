@@ -6,6 +6,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { callEdgeFunction, generateTemporaryPassword } from '../../lib/edgeFunctions';
+import { StartInductionModal } from './Inductions';
 
 /*
  * People: one list of everyone in the organisation, and one page per person
@@ -42,7 +43,8 @@ interface Person {
 
 interface Lookup { id: string; name: string; }
 
-interface Induction { id: string; start_date: string; expected_end_date: string; actual_end_date: string | null; status: string; completion_percentage: number; }
+interface Induction { id: string; start_date: string; expected_end_date: string; actual_end_date: string | null; status: string; completion_percentage: number; probation_end_date?: string | null; induction_templates?: { title: string } | null; }
+interface InductionTask { id: string; title: string; owner: string; due_date: string | null; is_required: boolean; status: string; }
 interface TrainingRow { id: string; title: string; kind: 'course' | 'path'; status: string; assigned_date: string; due_date: string | null; completed_at: string | null; }
 interface OkrRow { id: string; title: string; period: string; status: string; overall_progress: number; start_date: string; end_date: string; }
 
@@ -291,6 +293,7 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
   const [induction, setInduction] = useState<Induction[] | null>(null);
   const [training, setTraining] = useState<TrainingRow[] | null>(null);
   const [okrs, setOkrs] = useState<OkrRow[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const st = stageMeta(person.lifecycle_stage);
   const manager = people.find(p => p.employee_id && p.employee_id === person.reporting_manager_id);
 
@@ -299,12 +302,12 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
     const empId = person.employee_id;
     (async () => {
       const [ind, asg, prog, okr] = await Promise.all([
-        supabase.from('induction_journeys').select('id, start_date, expected_end_date, actual_end_date, status, completion_percentage').eq('employee_id', empId).order('start_date', { ascending: false }),
+        supabase.from('induction_journeys').select('id, start_date, expected_end_date, actual_end_date, status, completion_percentage, probation_end_date, induction_templates(title)').eq('employee_id', empId).order('start_date', { ascending: false }),
         supabase.from('employee_learning_assignments').select('id, status, assigned_date, due_date, course_id, learning_path_id, learning_courses(title), learning_paths(title)').eq('employee_id', empId).order('assigned_date', { ascending: false }),
         supabase.from('learning_progress').select('course_id, assignment_id, completed_at').eq('employee_id', empId).is('module_id', null).eq('status', 'completed'),
         supabase.from('okrs').select('id, title, period, status, overall_progress, start_date, end_date').eq('employee_id', empId).order('start_date', { ascending: false }),
       ]);
-      setInduction((ind.data || []) as Induction[]);
+      setInduction((ind.data || []) as unknown as Induction[]);
       const done = (prog.data || []) as { course_id: string; assignment_id: string; completed_at: string | null }[];
       setTraining(((asg.data || []) as any[]).map(a => ({
         id: a.id,
@@ -317,7 +320,7 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
       })));
       setOkrs((okr.data || []) as OkrRow[]);
     })();
-  }, [person.employee_id]);
+  }, [person.employee_id, reloadKey]);
 
   const trainingDone = training?.filter(t => t.status === 'completed').length ?? 0;
   const tabs: { id: Tab; label: string; count?: number }[] = [
@@ -377,7 +380,7 @@ function PersonPage({ person, people, departments, designations, canEdit, canEdi
       </div>
 
       {tab === 'profile' && <ProfileTab person={person} people={people} departments={departments} designations={designations} canEdit={canEdit} canEditAccount={canEditAccount} isSelf={isSelf} onChanged={onChanged} />}
-      {tab === 'induction' && <InductionTab rows={induction} />}
+      {tab === 'induction' && <InductionTab rows={induction} person={person} canEdit={canEdit} onChanged={() => { onChanged(); setInduction(null); setTraining(null); setOkrs(null); setReloadKey(k => k + 1); }} />}
       {tab === 'training' && <TrainingTab rows={training} person={person} />}
       {tab === 'okrs' && <OkrTab rows={okrs} />}
     </div>
@@ -556,23 +559,72 @@ function EmptyTab({ icon: Icon, text }: { icon: typeof BookOpen; text: string })
   return <div className="bg-white border border-gray-200 rounded-lg px-4 py-10 text-center"><Icon className="w-6 h-6 text-gray-300 mx-auto mb-1.5" /><p className="text-xs text-gray-500">{text}</p></div>;
 }
 
-function InductionTab({ rows }: { rows: Induction[] | null }) {
+function InductionTab({ rows, person, canEdit, onChanged }: { rows: Induction[] | null; person: Person; canEdit: boolean; onChanged: () => void }) {
+  const [tasks, setTasks] = useState<InductionTask[] | null>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [showStart, setShowStart] = useState(false);
+  const { userProfile } = useAuth();
+  const open = rows?.find(j => j.status !== 'completed') || null;
+
+  useEffect(() => {
+    if (!open) { setTasks(null); return; }
+    supabase.from('induction_tasks').select('id, title, owner, due_date, is_required, status').eq('journey_id', open.id).order('order_index').then(({ data }) => setTasks((data || []) as InductionTask[]));
+  }, [open?.id]);
+  useEffect(() => {
+    if (!canEdit || !userProfile?.organization_id) return;
+    supabase.from('induction_templates').select('*, designations(title)').eq('organization_id', userProfile.organization_id).eq('is_active', true).then(({ data }) => setTemplates(data || []));
+  }, [canEdit, userProfile?.organization_id]);
+
   if (!rows) return <p className="text-xs text-gray-500">Loading…</p>;
-  if (rows.length === 0) return <EmptyTab icon={ClipboardList} text="No induction has been started for this person." />;
+  const today = new Date().toISOString().slice(0, 10);
   return (
-    <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+    <div className="space-y-3">
+      {!open && canEdit && person.employee_id && person.lifecycle_stage !== 'exited' && (
+        <div className="flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3">
+          <p className="text-xs text-gray-600">{rows.length ? 'No induction in progress.' : 'No induction has been started for this person.'}</p>
+          <button onClick={() => setShowStart(true)} className="h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg text-[13px] font-semibold hover:bg-yellow-400 transition whitespace-nowrap">Start induction</button>
+        </div>
+      )}
+      {rows.length === 0 && !canEdit && <EmptyTab icon={ClipboardList} text="No induction has been started for this person." />}
       {rows.map(j => (
-        <div key={j.id} className="px-4 py-3 flex items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-gray-900 capitalize">{j.status.replace('_', ' ')}</p>
-            <p className="text-xs text-gray-500">{fmtDate(j.start_date)} → {fmtDate(j.actual_end_date || j.expected_end_date)}{j.actual_end_date ? '' : ' (expected)'}</p>
+        <div key={j.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 flex items-center gap-4 border-b border-gray-100">
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-gray-900">{j.induction_templates?.title || 'Induction'} · <span className="capitalize">{j.status.replace('_', ' ')}</span></p>
+              <p className="text-xs text-gray-500">{fmtDate(j.start_date)} → {fmtDate(j.actual_end_date || j.expected_end_date)}{j.actual_end_date ? '' : ' (expected)'}{j.probation_end_date ? ` · Probation ends ${fmtDate(j.probation_end_date)}` : ''}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-28 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${j.status === 'completed' ? 'bg-emerald-500' : 'bg-violet-500'}`} style={{ width: `${j.completion_percentage}%` }} /></div>
+              <span className="text-xs text-gray-600 w-9 text-right">{j.completion_percentage}%</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-28 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-violet-500" style={{ width: `${j.completion_percentage}%` }} /></div>
-            <span className="text-xs text-gray-600 w-9 text-right">{j.completion_percentage}%</span>
-          </div>
+          {j.id === open?.id && tasks && (
+            <ul className="divide-y divide-gray-100">
+              {tasks.length === 0 && <li className="px-4 py-3 text-xs text-gray-500">No checklist tasks.</li>}
+              {tasks.map(t => {
+                const late = t.status === 'pending' && t.due_date && t.due_date < today;
+                return (
+                  <li key={t.id} className="px-4 py-2 flex items-center gap-3">
+                    {t.status === 'pending' ? <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" /> : <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+                    <span className={`text-[13px] flex-1 min-w-0 truncate ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
+                    <span className={`text-xs ${late ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{t.owner === 'employee' ? 'Joiner' : t.owner === 'hr' ? 'HR' : 'Manager'}{t.due_date ? ` · ${fmtDate(t.due_date)}` : ''}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       ))}
+      {rows.length > 0 && <p className="text-[11px] text-gray-500">Tick tasks and add notes under Onboard → Inductions.</p>}
+      {showStart && person.employee_id && (
+        <StartInductionModal
+          people={[{ employee_id: person.employee_id, full_name: person.full_name, designation_id: person.designation_id || null }]}
+          defaultEmployeeId={person.employee_id}
+          templates={templates}
+          onClose={() => setShowStart(false)}
+          onStarted={() => { setShowStart(false); onChanged(); }}
+        />
+      )}
     </div>
   );
 }

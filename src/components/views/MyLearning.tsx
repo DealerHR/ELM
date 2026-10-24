@@ -56,6 +56,7 @@ interface CourseProgress {
 
 interface InductionTemplate {
   id: string;
+  title?: string;
   designation_id: string;
   duration_days: number;
   learning_path_id: string | null;
@@ -75,17 +76,6 @@ interface InductionJourney {
   status: string;
   completion_percentage: number;
   induction_templates: InductionTemplate | null;
-}
-
-interface InductionPathItem {
-  id: string;
-  path_id: string;
-  course_id: string;
-  order_index: number;
-  is_mandatory: boolean;
-  prerequisite_item_id: string | null;
-  prerequisite_path_id: string | null;
-  learning_courses: { id: string; title: string; description: string; duration_hours: number; type: string; delivery_type?: string } | null;
 }
 
 interface QuizQuestion {
@@ -362,278 +352,99 @@ function QuizModal({ courseId, courseTitle, assignmentId, employeeId, moduleId, 
 
 // ─── Induction Section ────────────────────────────────────────────────────────
 
-interface InductionSectionProps {
-  employeeId: string;
-  completedPathIds: Set<string>;
-}
+interface FirstDaysTask { id: string; title: string; description: string | null; owner: string; due_date: string | null; is_required: boolean; status: string; }
 
-function InductionSection({ employeeId, completedPathIds }: InductionSectionProps) {
+/**
+ * "Your first days": a light panel for a joiner whose induction is running.
+ * Their checklist (they tick their own items), the overall bar and the dates.
+ * The induction learning path itself is an ordinary assignment, so it shows in
+ * the list below like any other path.
+ */
+function FirstDaysPanel({ employeeId }: { employeeId: string }) {
   const [journey, setJourney] = useState<InductionJourney | null>(null);
-  const [pathItems, setPathItems] = useState<InductionPathItem[]>([]);
-  const [inductionAssignment, setInductionAssignment] = useState<{ id: string } | null>(null);
-  const [inductionProgress, setInductionProgress] = useState<Record<string, CourseProgress>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
-  const [error, setError] = useState('');
+  const [tasks, setTasks] = useState<FirstDaysTask[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: jData } = await supabase
-        .from('induction_journeys')
-        .select('*, induction_templates(*, designations(title), learning_paths(id, title, description))')
-        .eq('employee_id', employeeId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!jData) { setLoading(false); return; }
-      setJourney(jData as InductionJourney);
-
-      const pathId = (jData as InductionJourney).induction_templates?.learning_path_id;
-      if (!pathId) { setLoading(false); return; }
-
-      const { data: items } = await supabase
-        .from('learning_path_items')
-        .select('*, learning_courses(id, title, description, duration_hours, type, delivery_type)')
-        .eq('path_id', pathId)
-        .order('order_index');
-
-      setPathItems((items as InductionPathItem[]) || []);
-
-      const { data: asgn } = await supabase
-        .from('employee_learning_assignments')
-        .select('id')
-        .eq('employee_id', employeeId)
-        .eq('learning_path_id', pathId)
-        .maybeSingle();
-
-      setInductionAssignment(asgn);
-
-      if (asgn) {
-        const { data: prog } = await supabase
-          .from('learning_progress')
-          .select('*')
-          .eq('assignment_id', asgn.id)
-          .eq('employee_id', employeeId);
-
-        const map: Record<string, CourseProgress> = {};
-        (prog || []).forEach((p: any) => { if (p.course_id) map[p.course_id] = p; });
-        setInductionProgress(map);
-      }
-    } catch {
-      setError('Failed to load induction journey.');
-    } finally {
-      setLoading(false);
+    const { data: j } = await supabase
+      .from('induction_journeys')
+      .select('*, induction_templates(*, designations(title), learning_paths(id, title, description))')
+      .eq('employee_id', employeeId)
+      .in('status', ['not_started', 'in_progress', 'extended'])
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setJourney((j as InductionJourney) || null);
+    if (j) {
+      const { data: t } = await supabase.from('induction_tasks').select('id, title, description, owner, due_date, is_required, status').eq('journey_id', j.id).order('order_index');
+      setTasks((t || []) as FirstDaysTask[]);
     }
+    setLoaded(true);
   }, [employeeId]);
-
   useEffect(() => { load(); }, [load]);
 
-  const handleStart = async (courseId: string) => {
-    if (!inductionAssignment) return;
-    setSaving(courseId);
-    try {
-      const { data, error } = await supabase
-        .from('learning_progress')
-        .insert({
-          assignment_id: inductionAssignment.id,
-          employee_id: employeeId,
-          course_id: courseId,
-          module_id: null,
-          started_at: new Date().toISOString(),
-          progress_percentage: 0,
-          status: 'in_progress',
-          attempts: 1,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      await supabase.from('employee_learning_assignments').update({ status: 'in_progress' }).eq('id', inductionAssignment.id);
-      setInductionProgress(p => ({ ...p, [courseId]: data as CourseProgress }));
-    } catch (e: any) {
-      setError('Could not start course: ' + e.message);
-    } finally {
-      setSaving(null);
-    }
+  if (!loaded || !journey) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const dayNo = Math.max(0, Math.round((new Date(today).getTime() - new Date(journey.start_date).getTime()) / 86400000));
+  const total = Math.max(1, Math.round((new Date(journey.expected_end_date).getTime() - new Date(journey.start_date).getTime()) / 86400000));
+  const mine = tasks.filter(t => t.owner === 'employee');
+  const open = mine.filter(t => t.status === 'pending');
+  const shown = showAll ? mine : open.slice(0, 4);
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+
+  const toggle = async (t: FirstDaysTask) => {
+    setBusy(t.id);
+    const done = t.status === 'pending';
+    await supabase.from('induction_tasks').update({ status: done ? 'done' : 'pending', completed_at: done ? new Date().toISOString() : null }).eq('id', t.id);
+    await load();
+    setBusy(null);
   };
-
-  const handleComplete = async (courseId: string) => {
-    if (!inductionAssignment || !journey) return;
-    setSaving(courseId);
-    try {
-      const prog = inductionProgress[courseId];
-      if (!prog) return;
-
-      await supabase
-        .from('learning_progress')
-        .update({ status: 'completed', progress_percentage: 100, completed_at: new Date().toISOString() })
-        .eq('id', prog.id);
-
-      const updated = { ...inductionProgress, [courseId]: { ...prog, status: 'completed', progress_percentage: 100 } };
-      setInductionProgress(updated);
-
-      const done = pathItems.filter(it => updated[it.course_id]?.status === 'completed').length;
-      const pct = pathItems.length > 0 ? Math.round((done / pathItems.length) * 100) : 0;
-      const allDone = pct === 100;
-
-      await supabase.from('induction_journeys').update({
-        completion_percentage: pct,
-        status: allDone ? 'completed' : 'in_progress',
-        actual_end_date: allDone ? new Date().toISOString().split('T')[0] : null,
-      }).eq('id', journey.id);
-
-      if (allDone) {
-        await supabase.from('employee_learning_assignments').update({ status: 'completed' }).eq('id', inductionAssignment.id);
-      }
-
-      setJourney(j => j ? { ...j, completion_percentage: pct, status: allDone ? 'completed' : 'in_progress' } : j);
-    } catch (e: any) {
-      setError('Could not mark complete: ' + e.message);
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  const isUnlocked = (item: InductionPathItem): boolean => {
-    if (item.prerequisite_path_id && !completedPathIds.has(item.prerequisite_path_id)) return false;
-    if (!item.prerequisite_item_id) return true;
-    const prereq = pathItems.find(p => p.id === item.prerequisite_item_id);
-    if (!prereq) return true;
-    return inductionProgress[prereq.course_id]?.status === 'completed';
-  };
-
-  if (loading) return null;
-  if (!journey) return null;
-
-  const template = journey.induction_templates;
-  const isComplete = journey.status === 'completed';
-  const dayInfo = daysRemaining(journey.expected_end_date);
-  const completedCount = pathItems.filter(it => inductionProgress[it.course_id]?.status === 'completed').length;
 
   return (
-    <div className="mb-6">
-      {error && (
-        <div className="flex items-center gap-2 p-3 mb-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
-          <button onClick={() => setError('')} className="ml-auto"><XCircle className="w-4 h-4" /></button>
+    <section className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[13px] font-semibold text-gray-900">Your first {total} days</h2>
+          <p className="text-xs text-gray-500 truncate">
+            {journey.status === 'not_started' ? `Starts ${fmt(journey.start_date)}` : `Day ${Math.min(dayNo, total)} of ${total}`}
+            {journey.induction_templates?.title ? ` · ${journey.induction_templates.title}` : ''}
+            {open.length ? ` · ${open.length} thing${open.length === 1 ? '' : 's'} for you to do` : mine.length ? ' · your tasks are done' : ''}
+          </p>
         </div>
-      )}
-
-      <div className={`rounded-2xl overflow-hidden border-2 ${isComplete ? 'border-emerald-200' : 'border-blue-200'}`}>
-        <div className={`p-5 ${isComplete ? 'bg-gradient-to-br from-emerald-700 to-emerald-600' : 'bg-gradient-to-br from-blue-950 to-blue-900'} text-white`}>
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded ${isComplete ? 'bg-emerald-500/40 text-emerald-100' : 'bg-blue-800/60 text-blue-200'}`}>
-                  Induction Program
-                </span>
-                {isComplete && <span className="flex items-center gap-1 text-xs font-bold text-emerald-300"><CheckCircle className="w-3.5 h-3.5" /> Complete</span>}
-              </div>
-              <h2 className="text-lg font-bold leading-tight">{template?.designations?.title || 'Your'} Onboarding</h2>
-              {template?.description && <p className={`text-sm mt-0.5 ${isComplete ? 'text-emerald-200' : 'text-blue-200'}`}>{template.description}</p>}
-              <div className="flex items-center gap-4 mt-3 text-xs">
-                <div className={`flex items-center gap-1.5 ${isComplete ? 'text-emerald-300' : 'text-blue-300'}`}>
-                  <Calendar className="w-3 h-3" />
-                  Started {new Date(journey.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </div>
-                {isComplete ? (
-                  <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
-                    <CheckCircle className="w-3 h-3" />
-                    Completed {journey.actual_end_date ? new Date(journey.actual_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                  </div>
-                ) : (
-                  <div className={`flex items-center gap-1.5 font-semibold ${dayInfo.cls}`}>
-                    <Clock className="w-3 h-3" />{dayInfo.label}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex-shrink-0 text-center">
-              <div className="relative w-16 h-16">
-                <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
-                  <circle cx="32" cy="32" r="26" fill="none" stroke={isComplete ? '#6ee7b7' : '#facc15'} strokeWidth="5" strokeDasharray={`${(journey.completion_percentage / 100) * 163.4} 163.4`} strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-bold">{journey.completion_percentage}%</span>
-                </div>
-              </div>
-              <p className={`text-xs mt-1 ${isComplete ? 'text-emerald-300' : 'text-blue-300'}`}>{completedCount}/{pathItems.length}</p>
-            </div>
-          </div>
-          {pathItems.length > 0 && (
-            <button onClick={() => setExpanded(e => !e)} className={`mt-4 w-full flex items-center justify-between text-xs font-semibold px-3 py-2 rounded-lg transition ${isComplete ? 'bg-emerald-600/40 hover:bg-emerald-600/60 text-emerald-100' : 'bg-blue-800/50 hover:bg-blue-800/70 text-blue-200'}`}>
-              <span>{expanded ? 'Hide courses' : `Show ${pathItems.length} courses`}</span>
-              <ArrowRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-            </button>
-          )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="h-1.5 w-20 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-violet-500" style={{ width: `${journey.completion_percentage}%` }} /></div>
+          <span className="text-xs text-gray-600 w-8 text-right">{journey.completion_percentage}%</span>
         </div>
-
-        {expanded && pathItems.length > 0 && (
-          <div className="divide-y divide-gray-100 bg-white">
-            {pathItems.map((item, idx) => {
-              const course = item.learning_courses;
-              const prog = inductionProgress[item.course_id];
-              const courseStatus = prog?.status || 'not_started';
-              const unlocked = isUnlocked(item);
-              const isSaving = saving === item.course_id;
-              const certNeeded = course?.delivery_type === 'classroom' || course?.delivery_type === 'on_job';
-
-              return (
-                <div key={item.id} className={`flex items-start gap-4 px-5 py-4 transition-colors ${courseStatus === 'completed' ? 'bg-emerald-50/50' : courseStatus === 'in_progress' ? 'bg-blue-50/50' : !unlocked ? 'opacity-55 bg-gray-50/50' : 'hover:bg-gray-50/50'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${courseStatus === 'completed' ? 'bg-emerald-500' : courseStatus === 'in_progress' ? 'bg-blue-600' : unlocked ? 'bg-gray-200' : 'bg-gray-100'}`}>
-                    {courseStatus === 'completed' ? <CheckCircle2 className="w-4 h-4 text-white" /> : courseStatus === 'in_progress' ? <Circle className="w-4 h-4 text-white fill-white" /> : unlocked ? <span className="text-xs font-bold text-gray-500">{idx + 1}</span> : <Lock className="w-3.5 h-3.5 text-gray-400" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="text-xs text-gray-400">Step {idx + 1}</span>
-                      {item.is_mandatory && <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 rounded font-medium">Required</span>}
-                      {course?.delivery_type && deliveryBadge(course.delivery_type)}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">{course?.title || 'Course'}</p>
-                    {course?.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{course.description}</p>}
-                    {course?.duration_hours && <div className="flex items-center gap-1 mt-1 text-xs text-gray-400"><Clock className="w-3 h-3" />{course.duration_hours}h</div>}
-                    {certNeeded && courseStatus === 'in_progress' && (
-                      <p className="text-xs text-amber-600 mt-1 flex items-center gap-1"><Award className="w-3 h-3" />Awaiting L&D Certification</p>
-                    )}
-                  </div>
-                  <div className="flex-shrink-0 flex items-center gap-2">
-                    {courseStatus === 'not_started' && unlocked && (
-                      <button onClick={() => handleStart(item.course_id)} disabled={isSaving} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-950 text-white text-xs font-semibold rounded-lg hover:bg-blue-900 transition disabled:opacity-50">
-                        {isSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                        Start
-                      </button>
-                    )}
-                    {courseStatus === 'in_progress' && !certNeeded && (
-                      <button onClick={() => handleComplete(item.course_id)} disabled={isSaving} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50">
-                        {isSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                        Mark Complete
-                      </button>
-                    )}
-                    {courseStatus === 'in_progress' && certNeeded && (
-                      <span className="text-xs text-amber-500 font-medium flex items-center gap-1"><Award className="w-3.5 h-3.5" />Pending</span>
-                    )}
-                    {courseStatus === 'completed' && <span className="flex items-center gap-1 text-xs font-semibold text-emerald-700"><CheckCircle className="w-3.5 h-3.5" /> Done</span>}
-                    {!unlocked && courseStatus === 'not_started' && <span className="text-xs text-gray-400">Locked</span>}
-                  </div>
-                </div>
-              );
-            })}
-            {isComplete && (
-              <div className="flex items-center gap-3 px-5 py-4 bg-emerald-50 border-t border-emerald-100">
-                <Award className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-bold text-emerald-900">Induction Complete!</p>
-                  <p className="text-xs text-emerald-700">You've completed your onboarding. Continue your development with the programs below.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+      {journey.induction_templates?.description && <p className="px-4 pt-3 text-[13px] text-gray-700">{journey.induction_templates.description}</p>}
+      {mine.length > 0 && (
+        <ul className="divide-y divide-gray-100">
+          {shown.map(t => {
+            const late = t.status === 'pending' && t.due_date && t.due_date < today;
+            return (
+              <li key={t.id}>
+                <button onClick={() => toggle(t)} disabled={busy === t.id} className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition">
+                  {t.status === 'pending' ? <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" /> : <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+                  <span className="flex-1 min-w-0">
+                    <span className={`block text-[13px] ${t.status === 'pending' ? 'text-gray-900' : 'text-gray-500 line-through'}`}>{t.title}</span>
+                    {t.description && t.status === 'pending' && <span className="block text-xs text-gray-500 truncate">{t.description}</span>}
+                  </span>
+                  {t.due_date && <span className={`text-xs flex-shrink-0 ${late ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{late ? 'Overdue · ' : 'By '}{fmt(t.due_date)}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {(mine.length > shown.length || showAll) && (
+        <button onClick={() => setShowAll(s => !s)} className="w-full px-4 py-2 text-xs font-medium text-blue-800 hover:bg-gray-50 border-t border-gray-100 text-left">
+          {showAll ? 'Show fewer' : `Show all ${mine.length} tasks`}
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -1401,7 +1212,7 @@ export default function MyLearning() {
         </section>
       )}
 
-      {employeeId && <InductionSection employeeId={employeeId} completedPathIds={completedPathIds} />}
+      {employeeId && <FirstDaysPanel employeeId={employeeId} />}
 
       {assignments.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">

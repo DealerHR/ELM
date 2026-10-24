@@ -67,7 +67,29 @@ const FIXTURES: Record<string, any[]> = {
     ...['c1', 'c2', 'c3', 'c4', 'c5'].flatMap(cid => [1, 2, 3].map(n => ({ id: `m${cid.slice(1)}${n}`, course_id: cid, title: n === 1 ? 'Watch: the scenario' : n === 2 ? 'Read: key ideas' : 'Quick check', content_type: n === 3 ? 'quiz' : n === 1 ? 'video' : 'document', description: n === 2 ? 'Three-page summary of the key ideas' : null, is_mandatory: n !== 2, order_index: n, duration_minutes: n === 3 ? 5 : 8, content_url: n === 1 ? 'https://youtu.be/abc123' : null, content_file_path: null, content_file_name: n === 2 ? 'key-ideas.pptx' : null }))),
     ...[1, 2, 3, 4, 5].map(n => ({ id: `m7${n}`, course_id: 'c7', title: `Session ${n}`, content_type: 'presentation', is_mandatory: true, order_index: n, duration_minutes: 24, content_url: null, content_file_path: null, content_file_name: null })),
   ],
-  induction_journeys: [{ id: 'ij1', employee_id: 'emp-3', start_date: '2026-10-13', expected_end_date: '2027-01-11', actual_end_date: null, status: 'in_progress', completion_percentage: 35 }],
+  induction_journeys: [
+    { id: 'ij1', employee_id: 'emp-3', template_id: 'it1', start_date: '2026-10-13', expected_end_date: '2027-01-11', actual_end_date: null, status: 'in_progress', completion_percentage: 35, probation_end_date: '2027-01-11', notes: null, employees: { id: 'emp-3', user_id: 'user-3', employee_code: 'E3', organization_id: ORG, designations: { title: 'Team Lead' }, departments: { name: 'Sales' } }, induction_templates: { title: 'Sales floor induction', learning_path_id: 'p1', learning_paths: { title: 'Professional Listening' }, description: 'Your first 90 days on the showroom floor: documents, systems, shadowing, then your first solo customers.', designations: { title: 'Sales Executive' } } },
+    { id: 'ij2', employee_id: 'emp-4', template_id: 'it1', start_date: '2026-11-03', expected_end_date: '2027-02-01', actual_end_date: null, status: 'not_started', completion_percentage: 0, probation_end_date: '2027-02-01', notes: null, employees: { id: 'emp-4', user_id: 'user-4', employee_code: 'E4', organization_id: ORG, designations: { title: 'Service Advisor' }, departments: { name: 'Service' } }, induction_templates: { title: 'Sales floor induction', learning_path_id: 'p1', learning_paths: { title: 'Professional Listening' } } },
+  ],
+  induction_templates: [
+    { id: 'it1', organization_id: ORG, title: 'Sales floor induction', designation_id: 'd2', duration_days: 90, learning_path_id: 'p1', description: 'Your first 90 days on the showroom floor.', is_active: true, designations: { title: 'Sales Executive' }, learning_paths: { title: 'Professional Listening' } },
+    { id: 'it2', organization_id: ORG, title: 'General induction', designation_id: null, duration_days: 30, learning_path_id: null, description: null, is_active: true, designations: null, learning_paths: null },
+  ],
+  induction_template_tasks: [
+    { id: 'tt1', template_id: 'it1', title: 'Submit ID and bank documents', description: null, owner: 'employee', due_day: 2, is_required: true, order_index: 1 },
+    { id: 'tt2', template_id: 'it1', title: 'Meet your manager', description: null, owner: 'manager', due_day: 1, is_required: true, order_index: 2 },
+    { id: 'tt3', template_id: 'it1', title: 'Shadow a senior executive for a day', description: null, owner: 'employee', due_day: 5, is_required: true, order_index: 3 },
+    { id: 'tt4', template_id: 'it1', title: 'DMS and CRM access set up', description: null, owner: 'hr', due_day: 1, is_required: true, order_index: 4 },
+    { id: 'tt5', template_id: 'it1', title: 'Team lunch', description: null, owner: 'hr', due_day: 14, is_required: false, order_index: 5 },
+  ],
+  induction_tasks: [
+    { id: 'k1', journey_id: 'ij1', title: 'Submit ID and bank documents', description: 'Aadhaar, PAN, cancelled cheque', owner: 'employee', due_date: '2026-10-15', is_required: true, order_index: 1, status: 'done', completed_at: '2026-10-14', notes: null },
+    { id: 'k2', journey_id: 'ij1', title: 'Meet your manager', description: null, owner: 'manager', due_date: '2026-10-14', is_required: true, order_index: 2, status: 'done', completed_at: '2026-10-13', notes: null },
+    { id: 'k3', journey_id: 'ij1', title: 'Shadow a senior executive for a day', description: 'Ask Anita; pick a weekday', owner: 'employee', due_date: '2026-10-18', is_required: true, order_index: 3, status: 'pending', completed_at: null, notes: null },
+    { id: 'k4', journey_id: 'ij1', title: 'DMS and CRM access set up', description: null, owner: 'hr', due_date: '2026-10-14', is_required: true, order_index: 4, status: 'pending', completed_at: null, notes: null },
+    { id: 'k5', journey_id: 'ij1', title: 'Team lunch', description: null, owner: 'hr', due_date: '2026-10-27', is_required: false, order_index: 5, status: 'pending', completed_at: null, notes: null },
+    { id: 'k6', journey_id: 'ij1', title: 'Complete your first solo customer handover', description: null, owner: 'employee', due_date: '2026-11-30', is_required: true, order_index: 6, status: 'pending', completed_at: null, notes: null },
+  ],
   org_messages: [
     { id: 'msg1', title: 'Aeris launch training: 28 Oct, 9 am', body: 'All showroom staff to attend. Session at the Andheri training room.', priority: 'high', expires_at: null, created_at: '2026-10-22T09:00:00Z', sender_id: 'user-1', organization_id: ORG },
     { id: 'msg2', title: 'New quick links added', body: 'Product brochures and the price list are now pinned on your dashboard.', priority: 'normal', expires_at: null, created_at: '2026-10-20T09:00:00Z', sender_id: 'user-1', organization_id: ORG },
@@ -75,6 +97,8 @@ const FIXTURES: Record<string, any[]> = {
   message_reads: [],
   pinned_resources: [{ id: 'pr1', title: 'Aeris brochure', url: 'https://example.com', description: 'PDF, 12 pages', icon: 'book', organization_id: ORG, sort_order: 1 }, { id: 'pr2', title: 'Price list Oct 2026', url: 'https://example.com', icon: 'link', organization_id: ORG, sort_order: 2 }],
 };
+
+if (ROLE === 'employee') { FIXTURES.induction_journeys[0] = { ...FIXTURES.induction_journeys[0], employee_id: EMP }; }
 
 const PROFILE: UserProfile = { id: 'user-1', organization_id: ORG, email: 'yash@example.com', full_name: 'Yash Joshi', role: ROLE as UserRole, is_active: true, created_at: '', updated_at: '' };
 

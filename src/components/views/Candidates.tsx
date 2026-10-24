@@ -272,6 +272,7 @@ export default function Candidates() {
   const [showAllAssessments, setShowAllAssessments] = useState(false);
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [inductionPassword, setInductionPassword] = useState('');
+  const [inductionStarted, setInductionStarted] = useState<string | null>(null);
   const [inductionForm, setInductionForm] = useState({
     employee_code: '',
     department_id: '',
@@ -574,9 +575,11 @@ ${orgName} Recruitment Team`;
     // Account creation runs in an edge function so HR's own session is never
     // replaced and the password is a one-off value shown once.
     const temporaryPassword = generateTemporaryPassword();
+    let newEmployeeId: string | null = null;
     try {
-      const result = await callEdgeFunction<{ success: boolean; error?: string }>('create-org-employee', {
+      const result = await callEdgeFunction<{ success: boolean; error?: string; employee?: { id: string } }>('create-org-employee', {
         organization_id: userProfile.organization_id,
+        candidate_id: selectedCandidate.id,
         full_name: selectedCandidate.full_name,
         email: selectedCandidate.email,
         password: temporaryPassword,
@@ -594,12 +597,30 @@ ${orgName} Recruitment Team`;
         setSaving(false);
         return;
       }
+      newEmployeeId = result.employee?.id || null;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create the employee account.');
       setSaving(false);
       return;
     }
     setInductionPassword(temporaryPassword);
+
+    // Start the induction straight away when a template exists for the designation
+    // (or a general one with no designation). The account exists either way.
+    setInductionStarted(null);
+    if (newEmployeeId) {
+      const { data: templates } = await supabase
+        .from('induction_templates')
+        .select('id, title, designation_id')
+        .eq('organization_id', userProfile.organization_id)
+        .eq('is_active', true);
+      const tpl = (templates || []).find(t => t.designation_id && t.designation_id === inductionForm.designation_id)
+        || (templates || []).find(t => !t.designation_id);
+      if (tpl) {
+        const { error: startErr } = await supabase.rpc('start_induction', { p_employee: newEmployeeId, p_template: tpl.id, p_start: inductionForm.date_of_joining });
+        setInductionStarted(startErr ? null : tpl.title);
+      }
+    }
 
     const { error: candidateError } = await supabase
       .from('candidates')
@@ -1441,7 +1462,11 @@ ${orgName} Recruitment Team`;
               <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-emerald-800">{selectedCandidate.full_name} has been registered as an employee</p>
-                <p className="text-sm text-emerald-700 mt-0.5">An employee record has been created and the candidate status is now updated.</p>
+                <p className="text-sm text-emerald-700 mt-0.5">
+                  {inductionStarted
+                    ? `Their "${inductionStarted}" induction has started from their joining date. You can follow it under Onboard → Inductions.`
+                    : 'An employee record has been created. No induction template matches their designation, so start one from Onboard → Inductions when ready.'}
+                </p>
               </div>
             </div>
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">

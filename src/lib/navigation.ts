@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, UserCheck, Target, FolderOpen, Settings, Building, Briefcase,
-  Network, Award, BookOpen, Shield, FileText, BookMarked, Megaphone, Link2,
+  Network, Award, BookOpen, Shield, FileText, BookMarked, Megaphone, Link2, ClipboardList,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 import type { UserRole } from './supabase';
@@ -46,6 +46,13 @@ export const STAFF_SECTIONS: NavSection[] = [
       { id: 'candidates', label: 'Candidates', icon: UserCheck, roles: ['admin', 'hr'], mobilePrimary: true },
       { id: 'assessments', label: 'Assessments', icon: Award, roles: ['admin', 'hr'] },
       { id: 'growth-profile-guide', label: 'Growth Profile Guide', shortLabel: 'Guide', icon: FileText, roles: ['admin', 'hr'] },
+    ],
+  },
+  {
+    id: 'onboard',
+    label: 'Onboard',
+    items: [
+      { id: 'inductions', label: 'Inductions', icon: ClipboardList, roles: ['admin', 'hr', 'l_d_manager'] },
     ],
   },
   {

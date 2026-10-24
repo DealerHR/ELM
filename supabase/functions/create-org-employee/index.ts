@@ -27,6 +27,7 @@ Deno.serve(async (req: Request) => {
       employee_code,
       date_of_joining,
       employment_type,
+      candidate_id,
     } = await req.json();
 
     if (!organization_id || !full_name || !email || !password) {
@@ -136,6 +137,8 @@ Deno.serve(async (req: Request) => {
     };
     if (employment_type) employeeFields.employment_type = employment_type;
     if (date_of_joining) employeeFields.date_of_joining = date_of_joining;
+    // Which hire this person came from, when they arrived through Candidates.
+    if (typeof candidate_id === "string" && candidate_id) employeeFields.candidate_id = candidate_id;
 
     const { data: existingEmp } = await adminClient
       .from("employees")
