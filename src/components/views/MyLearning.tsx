@@ -723,31 +723,31 @@ interface ContinueTarget {
 }
 
 function ContinueCard({ target, onOpen, onStart }: { target: ContinueTarget; onOpen: () => void; onStart: () => void }) {
-  const remaining = target.modules.filter(m => !target.started || true).slice(target.doneCount).reduce((s, m) => s + (m.duration_minutes || 0), 0);
+  const remaining = target.modules.slice(target.doneCount).reduce((s, m) => s + (m.duration_minutes || 0), 0);
   return (
-    <section aria-label={target.started ? 'Continue learning' : 'Start learning'} className="bg-stratefix-black text-white rounded-xl px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold tracking-wider text-stratefix-yellow">{target.started ? 'CONTINUE WHERE YOU LEFT OFF' : 'START HERE'}</p>
-        <p className="text-base sm:text-lg font-semibold mt-1 leading-snug">{target.courseTitle}</p>
-        <p className="text-xs sm:text-sm text-gray-400 mt-1">
+    <button
+      onClick={target.started ? onOpen : onStart}
+      aria-label={target.started ? 'Continue learning' : 'Start learning'}
+      className="w-full text-left bg-white border border-gray-200 border-l-4 border-l-stratefix-yellow rounded-lg px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition"
+    >
+      <span className="w-9 h-9 rounded-lg bg-stratefix-yellow text-stratefix-black flex items-center justify-center flex-shrink-0"><ArrowRight className="w-4 h-4" /></span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-xs text-gray-500">{target.started ? 'Continue where you left off' : 'Start here'}</span>
+        <span className="block text-sm font-semibold text-gray-900 truncate">{target.courseTitle}</span>
+        <span className="block text-xs text-gray-500 truncate">
           {target.context}
           {target.modules.length > 0 ? ` · module ${Math.min(target.doneCount + 1, target.modules.length)} of ${target.modules.length}` : ''}
           {remaining > 0 ? ` · about ${remaining} min left` : ''}
-        </p>
-        {target.started && target.modules.length > 0 && (
-          <div className="flex items-center gap-2 mt-3">
-            <div className="w-full max-w-[220px] h-1 bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-stratefix-yellow" style={{ width: `${target.pct}%` }} /></div>
-            <span className="text-xs text-gray-400">{target.pct}%</span>
-          </div>
-        )}
-      </div>
-      <button
-        onClick={target.started ? onOpen : onStart}
-        className="h-11 sm:h-10 px-5 rounded-lg bg-stratefix-yellow text-stratefix-black text-sm font-semibold flex items-center justify-center gap-2 hover:bg-yellow-400 transition flex-shrink-0"
-      >
-        {target.started ? 'Resume' : 'Start'} <ArrowRight className="w-4 h-4" />
-      </button>
-    </section>
+        </span>
+      </span>
+      {target.started && target.modules.length > 0 && (
+        <span className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <span className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden"><span className="block h-full bg-stratefix-yellow" style={{ width: `${target.pct}%` }} /></span>
+          <span className="text-xs text-gray-600 w-8 text-right">{target.pct}%</span>
+        </span>
+      )}
+      <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{target.started ? 'Resume' : 'Start'}</span>
+    </button>
   );
 }
 
@@ -1145,22 +1145,20 @@ export default function MyLearning() {
         />
       )}
 
-      {dueSoon.length > 0 && (
-        <section aria-label="Due soon" className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 sm:px-4 space-y-1">
-          {dueSoon.map(a => {
-            const due = new Date(a.due_date!);
-            const overdue = due < new Date();
-            const days = Math.ceil((due.getTime() - Date.now()) / 86400000);
-            const title = a.learning_courses?.title || a.learning_paths?.title || 'Assignment';
-            return (
-              <div key={a.id} className="flex items-center gap-2 text-sm text-orange-900">
-                <Clock className="w-4 h-4 flex-shrink-0 text-orange-700" />
-                <span className="min-w-0 truncate"><strong className="font-semibold">{overdue ? 'Overdue' : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`}:</strong> {title}</span>
-              </div>
-            );
-          })}
-        </section>
-      )}
+      {dueSoon.length > 0 && (() => {
+        const overdue = dueSoon.filter(a => new Date(a.due_date!) < new Date());
+        const soon = dueSoon.filter(a => new Date(a.due_date!) >= new Date());
+        const name = (a: LearningAssignment) => a.learning_courses?.title || a.learning_paths?.title || 'an assignment';
+        return (
+          <p className="flex items-start gap-2 text-sm text-gray-700 px-1" aria-label="Due soon">
+            <Clock className={`w-4 h-4 flex-shrink-0 mt-0.5 ${overdue.length ? 'text-red-600' : 'text-amber-600'}`} />
+            <span className="min-w-0">
+              {overdue.length > 0 && <><span className="font-semibold text-red-700">Overdue:</span> {overdue.map(name).join(', ')}{soon.length ? '. ' : ''}</>}
+              {soon.length > 0 && <><span className="font-semibold text-amber-800">Due soon:</span> {soon.map(a => `${name(a)} (${Math.ceil((new Date(a.due_date!).getTime() - Date.now()) / 86400000)} d)`).join(', ')}</>}
+            </span>
+          </p>
+        );
+      })()}
 
       {employeeId && <FirstDaysPanel employeeId={employeeId} />}
 
@@ -1176,8 +1174,10 @@ export default function MyLearning() {
 
       {assignments.length > 0 && (
         <>
+          {/* Filters only earn their place once there is more than one state to filter by. */}
+          {assignments.length > 3 && [counts.in_progress, counts.assigned, counts.completed].filter(n => n > 0).length > 1 && (
           <div className="flex items-center gap-1.5 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 [scrollbar-width:none]" role="tablist" aria-label="Filter">
-            {([['all', 'All'], ['in_progress', 'In progress'], ['assigned', 'Not started'], ['completed', 'Completed']] as const).map(([f, label]) => (
+            {([['all', 'All'], ['in_progress', 'In progress'], ['assigned', 'Not started'], ['completed', 'Completed']] as const).filter(([f]) => f === 'all' || counts[f] > 0).map(([f, label]) => (
               <button
                 key={f}
                 role="tab"
@@ -1190,6 +1190,7 @@ export default function MyLearning() {
             ))}
             <span className="hidden sm:inline ml-auto text-xs text-gray-500 whitespace-nowrap">{totalHours} h assigned</span>
           </div>
+          )}
 
           {visiblePaths.length > 0 && (
             <section aria-label="Learning paths">

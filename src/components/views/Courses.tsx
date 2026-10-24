@@ -221,7 +221,7 @@ export default function Courses() {
   if (loading) return <div className="p-8 text-gray-500">Loading...</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-6">
       {toast && (
         <div className="fixed top-5 right-5 z-50 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg animate-fade-in">
           {toast}
@@ -229,7 +229,7 @@ export default function Courses() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Course Catalog</h1>
+        {/* page name is in the header */}
         <p className="text-sm text-gray-500 mt-1">
           {isEmployee
             ? 'Browse optional courses and request access from your L&D manager'

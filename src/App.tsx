@@ -19,7 +19,6 @@ import OKRs from './components/views/OKRs';
 import Repository from './components/views/Repository';
 import Assessments from './components/views/Assessments';
 import CourseBuilder from './components/views/CourseBuilder';
-import SkillBuilder from './components/views/SkillBuilder';
 import LearningPathBuilder from './components/views/LearningPathBuilder';
 import MyLearning from './components/views/MyLearning';
 import AssignLearning from './components/views/AssignLearning';
@@ -32,7 +31,6 @@ import SuperAdminDashboard from './components/views/SuperAdminDashboard';
 import Messages from './components/views/Messages';
 import PinnedResources from './components/views/PinnedResources';
 import UserProfile from './components/views/UserProfile';
-import CourseAccessRequests from './components/views/CourseAccessRequests';
 
 function AppContent() {
   const { user, userProfile } = useAuth();
@@ -103,15 +101,17 @@ function AppContent() {
       case 'growth-profile-guide':
         return <GrowthProfileGuide />;
       case 'skills':
-        return <Skills />;
       case 'skill-builder':
-        return <SkillBuilder />;
+        return <Skills />;
       case 'courses':
         return <Courses />;
       case 'course-builder':
         return <CourseBuilder />;
       case 'skill-mapping':
-        return <SkillMapping onNavigateToLearning={() => setActiveView('my-learning')} />;
+        // Staff manage the mapping inside Skills; learners see their own skill picture.
+        return !learnerMode && (userProfile?.role === 'admin' || userProfile?.role === 'l_d_manager')
+          ? <Skills initialTab="mapping" />
+          : <SkillMapping onNavigateToLearning={() => setActiveView('my-learning')} />;
       case 'learning-path-builder':
         return <LearningPathBuilder />;
       case 'my-learning':
@@ -119,7 +119,7 @@ function AppContent() {
       case 'assign-learning':
         return <AssignLearning />;
       case 'course-access-requests':
-        return <CourseAccessRequests />;
+        return <CourseBuilder initialTab="requests" />;
       case 'okrs':
         return <OKRs learnerMode={learnerMode} />;
       case 'reviews':

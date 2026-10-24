@@ -553,7 +553,7 @@ export default function Repository() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Resource Repository</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-600">Access learning materials and documents</p>
         </div>
         {canManage && (

@@ -221,10 +221,10 @@ export default function AssignLearning() {
   if (loading) return <div className="p-8 text-gray-500">Loading...</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Assign Learning</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-500 mt-1">Assign courses and learning paths to employees with deadlines</p>
         </div>
         <button
@@ -281,8 +281,8 @@ export default function AssignLearning() {
         </select>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Employee</th>

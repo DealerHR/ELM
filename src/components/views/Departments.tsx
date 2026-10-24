@@ -114,7 +114,7 @@ export default function Departments() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Departments</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-600">Manage organizational departments</p>
         </div>
         {(userProfile?.role === 'admin' || userProfile?.role === 'hr') && (

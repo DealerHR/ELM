@@ -145,7 +145,7 @@ export default function UserProfile() {
   return (
     <div className="p-5 max-w-3xl mx-auto">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
+        {/* page name is in the header */}
         <p className="text-sm text-gray-500 mt-0.5">Manage your personal information and profile photo</p>
       </div>
 

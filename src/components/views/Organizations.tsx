@@ -185,17 +185,17 @@ export default function Organizations() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-48">
+      <div className="p-4 lg:p-6 flex items-center justify-center h-48">
         <div className="w-6 h-6 border-2 border-blue-950 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 lg:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Organizations</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-500">Provision new client organizations and their admin accounts</p>
         </div>
         <button

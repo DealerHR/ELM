@@ -8,9 +8,9 @@ export default function SkillMapping({ onNavigateToLearning }: { onNavigateToLea
 
   if (isAdmin) {
     return (
-      <div className="p-8">
+      <div className="p-4 lg:p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Skill Mapping</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-500 mt-1">Assign skills to employee roles and manage pass thresholds</p>
         </div>
         <AdminSkillMapping />

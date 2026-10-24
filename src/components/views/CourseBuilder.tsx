@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import QuizBuilder from './course-builder/QuizBuilder';
 import LDCertifications from './course-builder/LDCertifications';
+import CourseAccessRequests from './CourseAccessRequests';
 
 interface Course {
   id: string;
@@ -84,11 +85,12 @@ const BLANK_MODULE = {
   is_mandatory: true,
 };
 
-type Tab = 'courses' | 'certifications';
+type Tab = 'courses' | 'certifications' | 'requests';
 
-export default function CourseBuilder() {
+export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?: Tab } = {}) {
   const { userProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('courses');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  const [pendingRequests, setPendingRequests] = useState(0);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -119,6 +121,8 @@ export default function CourseBuilder() {
     if (userProfile?.organization_id) {
       loadCourses();
       loadSkills();
+      supabase.from('course_access_requests').select('id', { count: 'exact', head: true }).eq('organization_id', userProfile.organization_id).eq('status', 'pending')
+        .then(({ count }) => setPendingRequests(count || 0));
     }
   }, [userProfile?.organization_id]);
 
@@ -355,6 +359,7 @@ export default function CourseBuilder() {
             {([
               { id: 'courses', label: 'Courses & assessments', short: 'Courses', count: courses.length },
               { id: 'certifications', label: 'Certifications', short: 'Certifications', count: null },
+              { id: 'requests', label: 'Access requests', short: 'Requests', count: pendingRequests || null },
             ] as { id: Tab; label: string; short: string; count: number | null }[]).map(tab => (
               <button
                 key={tab.id}
@@ -380,7 +385,11 @@ export default function CourseBuilder() {
         )}
       </div>
 
-      {activeTab === 'certifications' && userProfile?.organization_id ? (
+      {activeTab === 'requests' ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <CourseAccessRequests embedded />
+        </div>
+      ) : activeTab === 'certifications' && userProfile?.organization_id ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <LDCertifications organizationId={userProfile.organization_id} />
         </div>

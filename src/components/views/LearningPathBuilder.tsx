@@ -222,7 +222,7 @@ export default function LearningPathBuilder() {
     <div className="h-full flex flex-col px-8 py-8">
       <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Learning Path Builder</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-500 mt-1">Create structured learning journeys with prerequisites and sequenced courses</p>
         </div>
         <button

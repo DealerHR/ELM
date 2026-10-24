@@ -96,7 +96,7 @@ export default function PinnedResources() {
     <div className="p-5 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Quick Links</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-500 mt-0.5">Pin important resources for your team to access from the dashboard</p>
         </div>
         {canManage && (

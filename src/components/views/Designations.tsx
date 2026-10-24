@@ -147,7 +147,7 @@ export default function Designations() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Designations</h1>
+          {/* page name is in the header */}
           <p className="text-sm text-gray-600">Manage job titles and positions</p>
         </div>
         <div className="flex items-center gap-2">

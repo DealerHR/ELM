@@ -63,9 +63,6 @@ export const STAFF_SECTIONS: NavSection[] = [
       { id: 'learning-path-builder', label: 'Learning Paths', shortLabel: 'Paths', icon: Network, roles: ['admin', 'l_d_manager'] },
       { id: 'skill-builder', label: 'Skills', icon: Award, roles: ['admin', 'l_d_manager'] },
       { id: 'assign-learning', label: 'Assign Learning', shortLabel: 'Assign', icon: BookMarked, roles: ['admin', 'l_d_manager'], mobilePrimary: true },
-      { id: 'course-access-requests', label: 'Access Requests', shortLabel: 'Requests', icon: FileText, roles: ['admin', 'l_d_manager'] },
-      { id: 'courses', label: 'Course Catalog', shortLabel: 'Catalog', icon: BookMarked, roles: ['admin', 'l_d_manager'] },
-      { id: 'skill-mapping', label: 'Skill Mapping', shortLabel: 'Mapping', icon: Target, roles: ['admin', 'l_d_manager'] },
     ],
   },
   {
@@ -149,6 +146,8 @@ const EXTRA_TITLES: Record<string, string> = {
   'dashboard': 'Dashboard',
   'user-management': 'People',
   'reviews': 'Reviews',
+  'course-access-requests': 'Courses',
+  'skills': 'Skills',
 };
 
 export function pageTitle(viewId: string): string {

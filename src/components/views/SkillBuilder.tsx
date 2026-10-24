@@ -252,7 +252,7 @@ function OptionsList({
   );
 }
 
-export default function SkillBuilder() {
+export default function SkillBuilder({ embedded = false }: { embedded?: boolean } = {}) {
   const { userProfile } = useAuth();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
@@ -552,10 +552,10 @@ export default function SkillBuilder() {
   const visibleSkills = showInactive ? skills : skills.filter(s => s.is_active);
   const inactiveCount = skills.filter(s => !s.is_active).length;
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) return <div className="p-6 text-sm text-gray-500">Loading...</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-6">
       {toastMsg && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm animate-fade-in">
           <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -563,21 +563,18 @@ export default function SkillBuilder() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Skill Question Builder</h1>
-          <p className="text-gray-600">Create skills with up to 20 assessment questions each</p>
-        </div>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <p className="text-sm text-gray-500">{embedded ? 'Each skill carries up to 20 assessment questions.' : 'Create skills with up to 20 assessment questions each.'}</p>
         <button
           onClick={() => setShowSkillForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-500 transition font-semibold"
+          className="inline-flex items-center gap-1.5 h-8 px-3 bg-stratefix-yellow text-stratefix-black rounded-lg hover:bg-yellow-400 transition text-sm font-semibold flex-shrink-0"
         >
-          <Plus className="w-5 h-5" />
-          New Skill
+          <Plus className="w-3.5 h-3.5" />
+          New skill
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="col-span-1 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Skills</h2>

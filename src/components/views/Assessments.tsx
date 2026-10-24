@@ -329,7 +329,7 @@ export default function Assessments() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Assessment Builder</h1>
+            {/* page name is in the header */}
             <p className="text-sm text-gray-500 mt-0.5">Create knowledge assessments to send to candidates</p>
           </div>
           <button

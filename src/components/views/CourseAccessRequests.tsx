@@ -18,7 +18,7 @@ interface AccessRequest {
 
 type Tab = 'pending' | 'approved' | 'denied';
 
-export default function CourseAccessRequests() {
+export default function CourseAccessRequests({ embedded = false }: { embedded?: boolean } = {}) {
   const { userProfile } = useAuth();
 
   const [requests, setRequests] = useState<AccessRequest[]>([]);
@@ -167,22 +167,19 @@ export default function CourseAccessRequests() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  if (loading) return <div className="p-8 text-gray-500">Loading...</div>;
+  if (loading) return <div className="p-6 text-gray-500 text-sm">Loading...</div>;
 
   return (
-    <div className="p-8">
+    <div className={embedded ? 'p-4 lg:p-6' : 'p-4 lg:p-6'}>
       {toast && (
         <div className="fixed top-5 right-5 z-50 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
           {toast}
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Course Access Requests</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Review and action employee requests to access optional courses
-        </p>
-      </div>
+      {!embedded && (
+        <p className="text-sm text-gray-500 mb-4">Requests from learners to take optional courses.</p>
+      )}
 
       <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit mb-6">
         {(['pending', 'approved', 'denied'] as Tab[]).map(t => (
