@@ -1,11 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import {
-  BookOpen, CheckCircle, Target, Award, ExternalLink, Link2, Megaphone,
+  BookOpen, CheckCircle, Target, Award, ExternalLink, Link2, Megaphone, Inbox,
   ChevronRight, TrendingUp, Play, Users, ClipboardList, UserCheck, BookMarked, Network,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useMessages, type OrgMessage } from '../../hooks/useMessages';
+import { loadWorkQueue, type QueueItem } from '../../lib/workQueue';
 
 /*
  * One dashboard file, four variants: learner, manager, L&D/admin, HR.
@@ -172,6 +173,41 @@ function Announcements({ messages, unreadCount, markAsRead, onNavigate, limit = 
   );
 }
 
+/** What is waiting for this person, with one action per row. */
+function WorkQueue({ items, onNavigate }: { items: QueueItem[] | null; onNavigate?: (v: string) => void }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!items) return <Panel title="Needs your attention"><p className="px-4 py-6 text-xs text-gray-500">Checking…</p></Panel>;
+  const shown = showAll ? items : items.slice(0, 7);
+  const dot = (t: QueueItem['tone']) => t === 'danger' ? 'bg-red-500' : t === 'warn' ? 'bg-amber-500' : 'bg-blue-500';
+  return (
+    <Panel title="Needs your attention" count={items.length || undefined}>
+      {items.length === 0 ? (
+        <div className="px-4 py-7 text-center">
+          <Inbox className="w-6 h-6 text-emerald-500 mx-auto mb-1.5" />
+          <p className="text-[13px] font-medium text-gray-800">You're all caught up</p>
+          <p className="text-xs text-gray-500">Nothing is waiting on you right now.</p>
+        </div>
+      ) : (
+        <ul className="divide-y divide-gray-100">
+          {shown.map(it => (
+            <li key={it.id} className="px-3.5 py-2.5 flex items-center gap-3">
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot(it.tone)}`} />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[13px] text-gray-900 truncate">{it.title}</span>
+                <span className="block text-xs text-gray-500 truncate">{it.detail}{it.when ? ` · ${it.when}` : ''}</span>
+              </span>
+              <button onClick={() => onNavigate?.(it.action.view)} className="h-7 px-2.5 rounded-md border border-gray-300 text-xs font-medium text-gray-800 hover:bg-gray-50 transition flex-shrink-0">{it.action.label}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {items.length > 7 && (
+        <button onClick={() => setShowAll(a => !a)} className="w-full px-4 py-2 text-xs font-medium text-blue-800 hover:bg-gray-50 border-t border-gray-100 text-left">{showAll ? 'Show fewer' : `Show all ${items.length}`}</button>
+      )}
+    </Panel>
+  );
+}
+
 function QuickLinks({ resources, canManage, onNavigate }: { resources: PinnedResource[]; canManage: boolean; onNavigate?: (v: string) => void }) {
   if (resources.length === 0 && !canManage) return null;
   return (
@@ -243,6 +279,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
   const [hrStats, setHrStats] = useState<HrStats>({ employees: 0, departments: 0, candidates: 0, inProcess: 0, offers: 0, joined: 0 });
   const [directReports, setDirectReports] = useState<DirectReport[]>([]);
   const [pendingOKRs, setPendingOKRs] = useState<PendingOKR[]>([]);
+  const [queue, setQueue] = useState<QueueItem[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadAll(); }, [userProfile?.id, learnerMode]);
@@ -256,8 +293,15 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
       isLdOrAdmin ? loadCourseStats() : Promise.resolve(),
       isHr ? loadHrStats() : Promise.resolve(),
       isManager ? loadTeam() : Promise.resolve(),
+      loadQueue(),
     ]);
     setLoading(false);
+  };
+
+  const loadQueue = async () => {
+    if (!userProfile) return;
+    const { data: me } = await supabase.from('employees').select('id').eq('user_id', userProfile.id).maybeSingle();
+    setQueue(await loadWorkQueue({ profile: userProfile, learnerMode, employeeId: me?.id || null }));
   };
 
   const loadMyLearning = async () => {
@@ -380,7 +424,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
     );
   }
 
-  const shared = { messages, unreadCount, markAsRead, markAllAsRead, pinned, onNavigate, name: userProfile?.full_name };
+  const shared = { messages, unreadCount, markAsRead, markAllAsRead, pinned, onNavigate, name: userProfile?.full_name, queue };
 
   if (isLdOrAdmin) return <LdDashboard {...shared} orgStats={orgStats} courseStats={courseStats} isAdmin={role === 'admin'} />;
   if (isHr) return <HrDashboard {...shared} orgStats={orgStats} hrStats={hrStats} />;
@@ -392,7 +436,7 @@ export default function Dashboard({ onNavigate, learnerMode = false }: Dashboard
 
 interface SharedProps {
   messages: OrgMessage[]; unreadCount: number; markAsRead: (id: string) => void; markAllAsRead: () => void;
-  pinned: PinnedResource[]; onNavigate?: (v: string) => void; name?: string;
+  pinned: PinnedResource[]; onNavigate?: (v: string) => void; name?: string; queue: QueueItem[] | null;
 }
 
 function learningSummary(assignments: Assignment[]) {
@@ -420,7 +464,7 @@ function ContinueCard({ item, onNavigate }: { item: Assignment; onNavigate?: (v:
   );
 }
 
-function LearnerDashboard({ assignments, messages, unreadCount, markAsRead, pinned, onNavigate, name }: SharedProps & { assignments: Assignment[] }) {
+function LearnerDashboard({ assignments, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { assignments: Assignment[] }) {
   const s = learningSummary(assignments);
   const sub = s.pending.length === 0
     ? (assignments.length ? 'Everything assigned to you is done.' : 'Nothing is assigned to you yet.')
@@ -438,6 +482,7 @@ function LearnerDashboard({ assignments, messages, unreadCount, markAsRead, pinn
       ]} />
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4 min-w-0">
+          <WorkQueue items={queue} onNavigate={onNavigate} />
           <Panel title="Up next" count={s.pending.length} action={{ label: 'My Learning', onClick: () => onNavigate?.('my-learning') }}>
             <AssignmentList items={s.pending.slice(0, 6)} onNavigate={onNavigate} emptyText="Nothing waiting for you" />
           </Panel>
@@ -457,7 +502,7 @@ function LearnerDashboard({ assignments, messages, unreadCount, markAsRead, pinn
   );
 }
 
-function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, unreadCount, markAsRead, pinned, onNavigate, name }: SharedProps & { assignments: Assignment[]; directReports: DirectReport[]; pendingOKRs: PendingOKR[] }) {
+function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { assignments: Assignment[]; directReports: DirectReport[]; pendingOKRs: PendingOKR[] }) {
   const s = learningSummary(assignments);
   const teamTotal = directReports.reduce((n, r) => n + r.totalLearning, 0);
   const teamDone = directReports.reduce((n, r) => n + r.completedLearning, 0);
@@ -479,6 +524,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
       ]} />
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4 min-w-0">
+          <WorkQueue items={queue} onNavigate={onNavigate} />
           <Panel title="Team" count={directReports.length} action={{ label: 'Employees', onClick: () => onNavigate?.('employees') }}>
             {directReports.length === 0 ? (
               <Empty icon={Users} text="No one reports to you yet" />
@@ -527,26 +573,6 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
             )}
           </Panel>
 
-          <Panel title="OKRs waiting on you" count={pendingOKRs.length} action={{ label: 'Team OKRs', onClick: () => onNavigate?.('okrs') }}>
-            {pendingOKRs.length === 0 ? (
-              <Empty icon={Target} text="Everyone has OKRs set and shared" />
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {pendingOKRs.slice(0, 5).map(o => (
-                  <li key={o.id}>
-                    <button onClick={() => onNavigate?.('okrs')} className="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition">
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] text-gray-900 truncate">{o.title}</span>
-                        <span className="block text-xs text-gray-500">{o.employee_name}{o.period ? ` · ${o.period}` : ''}{o.status === 'draft' ? ' · draft, not shared' : ''}</span>
-                      </span>
-                      <span className="text-xs text-gray-600">{o.status === 'none' ? 'Set one' : `${o.overall_progress}%`}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
         </div>
         <div className="space-y-4 min-w-0">
           {s.inProgress && <ContinueCard item={s.inProgress} onNavigate={onNavigate} />}
@@ -561,7 +587,7 @@ function ManagerDashboard({ assignments, directReports, pendingOKRs, messages, u
   );
 }
 
-function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, markAsRead, pinned, onNavigate, name }: SharedProps & { orgStats: OrgStats; courseStats: CourseStats; isAdmin: boolean }) {
+function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { orgStats: OrgStats; courseStats: CourseStats; isAdmin: boolean }) {
   const pct = orgStats.total ? Math.round((orgStats.completed / orgStats.total) * 100) : 0;
   const sub = orgStats.total
     ? `${orgStats.learners} learner${orgStats.learners === 1 ? '' : 's'} with assignments · ${pct}% completed${orgStats.overdue ? ` · ${orgStats.overdue} overdue` : ''}.`
@@ -578,6 +604,7 @@ function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, ma
         { label: 'Courses live', value: courseStats.published, hint: courseStats.draft ? `${courseStats.draft} in draft` : undefined, onClick: () => onNavigate?.('course-builder') },
         { label: 'Learning paths', value: courseStats.paths, onClick: () => onNavigate?.('learning-path-builder') },
       ]} />
+      <WorkQueue items={queue} onNavigate={onNavigate} />
       <Shortcuts onNavigate={onNavigate} items={[
         { label: 'Course Builder', sub: 'Create and edit content', view: 'course-builder', icon: BookOpen },
         { label: 'Assign Learning', sub: 'To people or roles', view: 'assign-learning', icon: BookMarked },
@@ -600,7 +627,7 @@ function LdDashboard({ orgStats, courseStats, isAdmin, messages, unreadCount, ma
   );
 }
 
-function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pinned, onNavigate, name }: SharedProps & { orgStats: OrgStats; hrStats: HrStats }) {
+function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pinned, onNavigate, name, queue }: SharedProps & { orgStats: OrgStats; hrStats: HrStats }) {
   const pct = orgStats.total ? Math.round((orgStats.completed / orgStats.total) * 100) : 0;
   const sub = hrStats.inProcess
     ? `${hrStats.inProcess} candidate${hrStats.inProcess === 1 ? '' : 's'} in process${hrStats.offers ? `, ${hrStats.offers} offer${hrStats.offers === 1 ? '' : 's'} out` : ''}.`
@@ -617,6 +644,7 @@ function HrDashboard({ orgStats, hrStats, messages, unreadCount, markAsRead, pin
         { label: 'Learning completed', value: `${pct}%`, hint: `${orgStats.completed} of ${orgStats.total}` },
         { label: 'Learning overdue', value: orgStats.overdue, tone: 'danger' },
       ]} />
+      <WorkQueue items={queue} onNavigate={onNavigate} />
       <Shortcuts onNavigate={onNavigate} items={[
         { label: 'Candidates', sub: 'Recruitment pipeline', view: 'candidates', icon: UserCheck },
         { label: 'Employees', sub: 'Master data', view: 'employees', icon: Users },

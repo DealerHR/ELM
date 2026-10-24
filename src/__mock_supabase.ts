@@ -57,9 +57,10 @@ const FIXTURES: Record<string, any[]> = {
   ],
   ld_certifications: [],
   learning_paths: [{ id: 'p1', title: 'Professional Listening', organization_id: ORG }],
+  course_access_requests: [{ id: 'ar1', organization_id: ORG, employee_id: 'user-2', status: 'pending', requested_at: '2026-10-22T08:00:00Z', learning_courses: { title: 'Aeris launch: product walkthrough' } }],
   departments: [{ id: 'd1', organization_id: ORG, name: 'Sales' }, { id: 'd2', organization_id: ORG, name: 'Service' }],
   designations: [{ id: 'd1', organization_id: ORG, title: 'Showroom Manager' }, { id: 'd2', organization_id: ORG, title: 'Sales Executive' }],
-  candidates: [{ status: 'applied', organization_id: ORG }, { status: 'interviewed', organization_id: ORG }, { status: 'offer_extended', organization_id: ORG }, { status: 'joined', organization_id: ORG }, { status: 'rejected', organization_id: ORG }],
+  candidates: [{ id: 'cd1', full_name: 'Meera Iyer', applied_position_title: 'Sales Executive', status: 'applied', organization_id: ORG }, { id: 'cd2', full_name: 'Karan Shah', applied_position_title: 'Service Advisor', status: 'interviewed', updated_at: '2026-10-21T10:00:00Z', organization_id: ORG }, { id: 'cd3', full_name: 'Divya Menon', applied_position_title: 'Sales Executive', status: 'offer_extended', updated_at: '2026-10-19T10:00:00Z', organization_id: ORG }, { id: 'cd4', full_name: 'Arjun Pillai', applied_position_title: 'Team Lead', status: 'offer_accepted', updated_at: '2026-10-23T10:00:00Z', organization_id: ORG }, { status: 'joined', organization_id: ORG }, { status: 'rejected', organization_id: ORG }],
   okrs: [
     { id: 'o1', employee_id: 'emp-2', title: 'Grow test-drive conversions', description: 'More of the walk-ins who test drive should buy.', okr_type: 'individual', period: 'quarterly', start_date: '2026-10-01', end_date: '2026-12-31', overall_progress: 63, status: 'set', set_by: 'user-1', set_at: '2026-10-02', key_results: [
       { id: 'kr1', okr_id: 'o1', title: 'Test drives per month', target_value: 40, current_value: 10, unit: 'drives', weight: 50, progress_percentage: 25, status: 'on_track' },
@@ -120,7 +121,9 @@ function builder(table: string) {
     eq(col: string, val: unknown) { rows = rows.filter(r => r[col] === val || col.includes('.')); return b; },
     in(col: string, vals: unknown[]) { rows = rows.filter(r => vals.includes(r[col])); return b; },
     is(col: string, val: unknown) { rows = rows.filter(r => (r[col] ?? null) === val); return b; },
-    or() { return b; }, not() { return b; }, order() { return b; }, limit() { return b; }, gte() { return b; }, lte() { return b; },
+    or() { return b; }, not(col: string, op: string, val: unknown) { if (op === 'is' && val === null) rows = rows.filter(r => r[col] != null); return b; }, order() { return b; }, limit() { return b; },
+    gte(col: string, val: any) { rows = rows.filter(r => r[col] != null && r[col] >= val); return b; }, lte(col: string, val: any) { rows = rows.filter(r => r[col] != null && r[col] <= val); return b; },
+    neq(col: string, val: unknown) { rows = rows.filter(r => r[col] !== val); return b; },
     maybeSingle() { single = true; return b; },
     single() { single = true; return b; },
     insert() { rows = []; return b; }, update() { rows = []; return b; }, upsert() { rows = []; return b; }, delete() { rows = []; return b; },
