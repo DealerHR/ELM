@@ -5,7 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import QuizBuilder from './course-builder/QuizBuilder';
 import LDCertifications from './course-builder/LDCertifications';
 import CourseAccessRequests from './CourseAccessRequests';
-import { useRoute, replaceRoute } from '../../lib/router';
+import { useRoute, replaceRoute, navigate } from '../../lib/router';
+import NewCourseWizard from './course-builder/NewCourseWizard';
 
 interface Course {
   id: string;
@@ -92,6 +93,7 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
   const { userProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [wizard, setWizard] = useState<null | { assessment: boolean }>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -265,10 +267,9 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
         const ext = uploadFile.name.split('.').pop();
         const storagePath = `${userProfile?.organization_id}/${selectedCourse.id}/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage.from('course-content').upload(storagePath, uploadFile, { upsert: true });
-        if (!uploadErr) {
-          filePath = storagePath;
-          fileName = uploadFile.name;
-        }
+        if (uploadErr) { alert(`The file could not be uploaded: ${uploadErr.message}`); setUploading(false); return; }
+        filePath = storagePath;
+        fileName = uploadFile.name;
       }
 
       const payload = {
@@ -343,11 +344,8 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
 
   const selectCourse = (course: Course) => { setSelectedCourse(course); setMobileDetail(true); replaceRoute('course-builder', course.id); };
 
-  const newCourseButton = (assessment: boolean) => () => {
-    setEditingCourse(null);
-    setCourseForm({ ...BLANK_COURSE, is_assessment: assessment });
-    setShowCourseForm(true);
-  };
+  // New course / assessment go through the guided flow; Edit keeps the simple form.
+  const newCourseButton = (assessment: boolean) => () => setWizard({ assessment });
 
   const requiredCount = modules.filter(m => m.is_mandatory).length;
   const totalMinutes = modules.reduce((s, m) => s + (m.duration_minutes || 0), 0);
@@ -643,6 +641,15 @@ export default function CourseBuilder({ initialTab = 'courses' }: { initialTab?:
             )}
           </section>
         </div>
+      )}
+
+      {wizard && (
+        <NewCourseWizard
+          isAssessment={wizard.assessment}
+          skills={availableSkills.map(sk => ({ id: sk.id, name: sk.name }))}
+          onClose={() => setWizard(null)}
+          onCreated={(id) => { setWizard(null); loadCourses().then(() => navigate('course-builder', id)); }}
+        />
       )}
 
       {showCourseForm && (
